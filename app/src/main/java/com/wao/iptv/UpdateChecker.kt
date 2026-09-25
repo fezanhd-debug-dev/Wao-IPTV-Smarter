@@ -16,7 +16,7 @@ sealed class UpdateResult {
 }
 
 const val UPDATE_CHECK_URL =
-    "https://raw.githubusercontent.com/fezanhd-debug-dev/WAO-IPTV-Android/main/version.json"
+    "https://raw.githubusercontent.com/fezanhd-debug-dev/Wao-IPTV-Smarter/main/version.json"
 
 fun checkForUpdate(currentVersionCode: Int): UpdateResult {
     return try {
