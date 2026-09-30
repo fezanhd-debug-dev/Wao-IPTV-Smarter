@@ -73,8 +73,8 @@ private fun CrashScreen(text: String, onDismiss: () -> Unit) {
     ) {
         Text("App crash ho gayi thi. Yeh error neeche hai — screenshot karke bhej dein.", color = Color.White)
         Spacer(Modifier.height(12.dp))
-        SelectionContainer {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            SelectionContainer {
                 Text(text, color = Color(0xFFF87171))
             }
         }
