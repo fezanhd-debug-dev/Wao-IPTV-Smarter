@@ -42,11 +42,50 @@ private fun TvRailIcon(
 }
 
 @Composable
+private fun TvChannelCard(
+    ch: Channel,
+    fav: Boolean,
+    focusRequester: FocusRequester? = null,
+    onClick: () -> Unit,
+    onToggleFav: () -> Unit
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier.width(240.dp).background(Slate900.copy(alpha = 0.8f), shape).border(1.dp, Slate800, shape)
+            .tvClick(shape, focusRequester = focusRequester, onClick = onClick)
+            .padding(10.dp)
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(Slate800)) {
+            AsyncImage(model = ch.icon, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+            Pill("LIVE", Red, Color.White, Modifier.align(Alignment.TopStart).padding(6.dp))
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(24.dp)
+                    .background(Color(0xB3000000), androidx.compose.foundation.shape.CircleShape)
+                    .clickable(onClick = onToggleFav),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    null, tint = if (fav) RedSoft else Color.White, modifier = Modifier.size(13.dp)
+                )
+            }
+        }
+        Txt(ch.name, 14, Color.White, FontWeight.Bold, Modifier.padding(top = 6.dp), maxLines = 1)
+    }
+}
+
+@Composable
 fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
     val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
+    val favChannels = remember(vm.favorites, all) { vm.favoriteChannels() }
     val hero = all.firstOrNull()
 
     val homeFocus = remember { FocusRequester() }
+    val firstFavFocus = remember { FocusRequester() }
+    val firstAllFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         delay(150)
         runCatching { homeFocus.requestFocus() }
@@ -79,37 +118,60 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
                     Column(Modifier.align(Alignment.BottomStart).padding(32.dp)) {
                         Pill("FEATURED", Cyan, Slate950)
                         Txt(hero.name, 34, Color.White, FontWeight.Black, Modifier.padding(top = 8.dp))
-                        val btn = RoundedCornerShape(12.dp)
-                        Row(
-                            Modifier.padding(top = 16.dp).background(Cyan, btn)
-                                .tvClick(btn) { vm.playChannel(hero); nav.navigate("player") }
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.PlayArrow, null, tint = Slate950, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Txt("Watch Now", 14, Slate950, FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val btn = RoundedCornerShape(12.dp)
+                            Row(
+                                Modifier.padding(top = 16.dp).background(Cyan, btn)
+                                    .tvClick(btn) { vm.playChannel(hero); nav.navigate("player") }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Filled.PlayArrow, null, tint = Slate950, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Txt("Watch Now", 14, Slate950, FontWeight.Bold)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Box(Modifier.padding(top = 16.dp)) {
+                                FavButton(vm.isFavorite("live:${hero.id}"), size = 44.dp) {
+                                    vm.toggleFavoriteChannel(hero)
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            if (favChannels.isNotEmpty()) {
+                Spacer(Modifier.height(28.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Favorite, null, tint = RedSoft, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Txt("MY FAVORITES", 14, Slate400, FontWeight.Bold, spacing = 1f)
+                }
+                Spacer(Modifier.height(16.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    itemsIndexed(favChannels) { i, ch ->
+                        TvChannelCard(
+                            ch, true,
+                            focusRequester = if (i == 0) firstFavFocus else null,
+                            onClick = { vm.playChannel(ch); nav.navigate("player") },
+                            onToggleFav = { vm.toggleFavoriteChannel(ch) }
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(28.dp))
             Txt("Live Channels (D-Pad Select)", 14, Slate400, FontWeight.Bold, spacing = 1f)
             Spacer(Modifier.height(16.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                items(all.take(30), key = { it.id }) { ch ->
-                    val shape = RoundedCornerShape(16.dp)
-                    Column(
-                        Modifier.width(240.dp).background(Slate900.copy(alpha = 0.8f), shape).border(1.dp, Slate800, shape)
-                            .tvClick(shape) { vm.playChannel(ch); nav.navigate("player") }
-                            .padding(10.dp)
-                    ) {
-                        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(Slate800)) {
-                            AsyncImage(model = ch.icon, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-                            Pill("LIVE", Red, Color.White, Modifier.align(Alignment.TopStart).padding(6.dp))
-                        }
-                        Txt(ch.name, 14, Color.White, FontWeight.Bold, Modifier.padding(top = 6.dp), maxLines = 1)
-                    }
+                itemsIndexed(all.take(30)) { i, ch ->
+                    TvChannelCard(
+                        ch, vm.isFavorite("live:${ch.id}"),
+                        focusRequester = if (i == 0 && favChannels.isEmpty()) firstAllFocus else null,
+                        onClick = { vm.playChannel(ch); nav.navigate("player") },
+                        onToggleFav = { vm.toggleFavoriteChannel(ch) }
+                    )
                 }
             }
         }
@@ -200,5 +262,14 @@ fun TvQuadViewScreen(vm: AppViewModel, nav: NavController) {
                 }
             }
         }
+    }
+}
+
+private inline fun <T> androidx.compose.foundation.lazy.LazyListScope.itemsIndexed(
+    items: List<T>,
+    crossinline content: @Composable (Int, T) -> Unit
+) {
+    androidx.compose.foundation.lazy.items(items.size, key = { items[it].hashCode() }) { i ->
+        content(i, items[i])
     }
 }
