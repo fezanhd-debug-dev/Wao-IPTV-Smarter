@@ -49,6 +49,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var nowPlaying by mutableStateOf<PlayItem?>(null)
 
     var savedAccounts by mutableStateOf(store.loadAccounts())
+    var favorites by mutableStateOf(store.loadFavorites())
 
     var selectedSeries by mutableStateOf<VodItem?>(null)
     var episodes by mutableStateOf<List<Episode>>(emptyList())
@@ -83,6 +84,43 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun updateSettings(s: AppSettings) {
         settings = s
         store.saveSettings(s)
+    }
+
+    fun isFavorite(key: String): Boolean = favorites.any { it.key == key }
+
+    fun toggleFavoriteChannel(ch: Channel) {
+        val key = "live:${ch.id}"
+        favorites = if (favorites.any { it.key == key }) {
+            favorites.filter { it.key != key }
+        } else {
+            favorites + FavoriteItem(key, "live", ch.name, ch.icon)
+        }
+        store.saveFavorites(favorites)
+    }
+
+    fun toggleFavoriteVod(v: VodItem) {
+        val key = (if (v.isSeries) "series:" else "movie:") + v.id
+        favorites = if (favorites.any { it.key == key }) {
+            favorites.filter { it.key != key }
+        } else {
+            favorites + FavoriteItem(key, if (v.isSeries) "series" else "movie", v.name, v.poster)
+        }
+        store.saveFavorites(favorites)
+    }
+
+    fun favoriteChannels(): List<Channel> {
+        val keys = favorites.filter { it.kind == "live" }.map { it.key }.toSet()
+        return visibleChannels().filter { "live:${it.id}" in keys }
+    }
+
+    fun favoriteMovies(): List<VodItem> {
+        val keys = favorites.filter { it.kind == "movie" }.map { it.key }.toSet()
+        return movies.filter { "movie:${it.id}" in keys }
+    }
+
+    fun favoriteSeries(): List<VodItem> {
+        val keys = favorites.filter { it.kind == "series" }.map { it.key }.toSet()
+        return seriesList.filter { "series:${it.id}" in keys }
     }
 
     private fun accountId(s: Session): String =
