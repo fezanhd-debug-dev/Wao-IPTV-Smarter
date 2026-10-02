@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -150,7 +151,7 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
                 }
                 Spacer(Modifier.height(16.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    itemsIndexed(favChannels) { i, ch ->
+                    itemsIndexed(favChannels, key = { _, ch -> "fav-${ch.id}" }) { i, ch ->
                         TvChannelCard(
                             ch, true,
                             focusRequester = if (i == 0) firstFavFocus else null,
@@ -164,8 +165,9 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(28.dp))
             Txt("Live Channels (D-Pad Select)", 14, Slate400, FontWeight.Bold, spacing = 1f)
             Spacer(Modifier.height(16.dp))
+            val liveList = all.take(30)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                itemsIndexed(all.take(30)) { i, ch ->
+                itemsIndexed(liveList, key = { _, ch -> "all-${ch.id}" }) { i, ch ->
                     TvChannelCard(
                         ch, vm.isFavorite("live:${ch.id}"),
                         focusRequester = if (i == 0 && favChannels.isEmpty()) firstAllFocus else null,
@@ -262,14 +264,5 @@ fun TvQuadViewScreen(vm: AppViewModel, nav: NavController) {
                 }
             }
         }
-    }
-}
-
-private inline fun <T> androidx.compose.foundation.lazy.LazyListScope.itemsIndexed(
-    items: List<T>,
-    crossinline content: @Composable (Int, T) -> Unit
-) {
-    androidx.compose.foundation.lazy.items(items.size, key = { items[it].hashCode() }) { i ->
-        content(i, items[i])
     }
 }
