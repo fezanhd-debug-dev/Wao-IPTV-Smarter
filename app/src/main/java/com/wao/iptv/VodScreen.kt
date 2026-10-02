@@ -26,7 +26,9 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 
 @Composable
-private fun PosterCard(item: VodItem, onClick: () -> Unit) {
+private fun PosterCard(vm: AppViewModel, item: VodItem, onClick: () -> Unit) {
+    val key = (if (item.isSeries) "series:" else "movie:") + item.id
+    val fav = vm.isFavorite(key)
     Column(Modifier.glass(RoundedCornerShape(16.dp)).tvClick(RoundedCornerShape(16.dp), onClick = onClick).padding(8.dp)) {
         Box(
             Modifier
@@ -46,6 +48,9 @@ private fun PosterCard(item: VodItem, onClick: () -> Unit) {
                     Txt(item.rating, 9, Color.White, FontWeight.Bold)
                 }
             }
+            Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) {
+                FavButton(fav, size = 26.dp) { vm.toggleFavoriteVod(item) }
+            }
         }
         Spacer(Modifier.height(8.dp))
         Txt(item.name, 12, Color.White, FontWeight.Bold, maxLines = 1)
@@ -58,14 +63,22 @@ private fun PosterCard(item: VodItem, onClick: () -> Unit) {
 
 @Composable
 private fun SeriesDetail(vm: AppViewModel, series: VodItem, nav: NavController, onBack: () -> Unit) {
+    val fav = vm.isFavorite("series:${series.id}")
     Column(Modifier.fillMaxSize().background(Bg)) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(36.dp).glass(RoundedCornerShape(12.dp)).tvClick(RoundedCornerShape(12.dp), onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(16.dp)) }
-            Spacer(Modifier.width(12.dp))
-            Txt(series.name, 16, Color.White, FontWeight.Bold, maxLines = 1)
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(36.dp).glass(RoundedCornerShape(12.dp)).tvClick(RoundedCornerShape(12.dp), onClick = onBack),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(16.dp)) }
+                Spacer(Modifier.width(12.dp))
+                Txt(series.name, 16, Color.White, FontWeight.Bold, maxLines = 1)
+            }
+            FavButton(fav) { vm.toggleFavoriteVod(series) }
         }
         LazyColumn(
             Modifier.weight(1f),
@@ -112,6 +125,7 @@ private fun SeriesDetail(vm: AppViewModel, series: VodItem, nav: NavController, 
 fun VodScreen(vm: AppViewModel, nav: NavController) {
     var query by remember { mutableStateOf("") }
     var cat by remember { mutableStateOf("") }
+    var showFavorites by remember { mutableStateOf(false) }
     var pinFor by remember { mutableStateOf<String?>(null) }
 
     if (vm.selectedSeries != null) {
@@ -123,10 +137,14 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
     val items = if (isSeries) vm.seriesList else vm.movies
     val cats = if (isSeries) vm.seriesCats else vm.movieCats
     val locked = remember(cats, vm.lockActive) { if (vm.lockActive) vm.adultIds(cats) else emptySet() }
-    val filtered = remember(items, query, cat) {
-        items.filter { (cat.isEmpty() || it.categoryId == cat) && (query.isBlank() || it.name.contains(query, true)) }
+    val favCount = remember(vm.favorites, isSeries) {
+        vm.favorites.count { it.kind == (if (isSeries) "series" else "movie") }
     }
-    val hero = filtered.firstOrNull()
+    val baseList = if (showFavorites) (if (isSeries) vm.favoriteSeries() else vm.favoriteMovies()) else items
+    val filtered = remember(baseList, query, cat, showFavorites) {
+        baseList.filter { (cat.isEmpty() || it.categoryId == cat) && (query.isBlank() || it.name.contains(query, true)) }
+    }
+    val hero = if (showFavorites) null else filtered.firstOrNull()
 
     Column(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -148,7 +166,7 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
                     val shape = RoundedCornerShape(10.dp)
                     Box(
                         Modifier.weight(1f).background(if (sel) Cyan else Color.Transparent, shape)
-                            .tvClick(shape) { vm.vodTab = idx; cat = ""; query = "" }
+                            .tvClick(shape) { vm.vodTab = idx; cat = ""; query = ""; showFavorites = false }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) { Txt(label, 11, if (sel) Slate950 else Slate400, FontWeight.Bold) }
@@ -157,7 +175,13 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(12.dp))
             SearchField(query, { query = it }, "Search titles...")
             Spacer(Modifier.height(12.dp))
-            CategoryChips(cats, cat, locked) { id -> if (id in locked) pinFor = id else cat = id }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FavoritesChip(showFavorites, favCount) { showFavorites = !showFavorites }
+                Spacer(Modifier.width(8.dp))
+                if (!showFavorites) {
+                    CategoryChips(cats, cat, locked) { id -> if (id in locked) pinFor = id else cat = id }
+                }
+            }
         }
 
         LazyVerticalGrid(
@@ -190,15 +214,20 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
                                 Txt(if (hero.isSeries) "View Episodes" else "Watch Movie", 11, Slate950, FontWeight.Bold)
                             }
                         }
+                        Box(Modifier.align(Alignment.TopEnd).padding(12.dp)) {
+                            FavButton(vm.isFavorite((if (hero.isSeries) "series:" else "movie:") + hero.id)) {
+                                vm.toggleFavoriteVod(hero)
+                            }
+                        }
                     }
                 }
             }
             items(filtered, key = { it.id }) { v ->
-                PosterCard(v) { if (v.isSeries) vm.openSeries(v) else { vm.playMovie(v); nav.navigate("player") } }
+                PosterCard(vm, v) { if (v.isSeries) vm.openSeries(v) else { vm.playMovie(v); nav.navigate("player") } }
             }
             if (filtered.isEmpty()) {
                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
-                    Txt("Kuch nahi mila", 12, Slate500)
+                    Txt(if (showFavorites) "Abhi koi favorite nahi hai" else "Kuch nahi mila", 12, Slate500)
                 }
             }
         }
