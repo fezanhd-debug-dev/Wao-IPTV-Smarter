@@ -67,4 +67,17 @@ class Store(context: Context) {
     fun saveAccounts(list: List<SavedAccount>) {
         sp.edit().putString("accounts", gson.toJson(list)).apply()
     }
+
+    fun loadFavorites(): List<FavoriteItem> {
+        val j = sp.getString("favorites", null) ?: return emptyList()
+        return try {
+            gson.fromJson(j, Array<FavoriteItem>::class.java).toList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveFavorites(list: List<FavoriteItem>) {
+        sp.edit().putString("favorites", gson.toJson(list)).apply()
+    }
 }
