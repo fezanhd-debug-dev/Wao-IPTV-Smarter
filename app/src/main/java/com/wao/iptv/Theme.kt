@@ -4,10 +4,13 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
@@ -156,6 +159,24 @@ fun BigLogo(size: Dp = 80.dp) {
 }
 
 @Composable
+fun FavButton(active: Boolean, size: Dp = 32.dp, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(size)
+            .background(Color(0xB3000000), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            if (active) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+            null,
+            tint = if (active) RedSoft else Color.White,
+            modifier = Modifier.size(size * 0.55f)
+        )
+    }
+}
+
+@Composable
 fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(12.dp)
@@ -211,6 +232,27 @@ fun CategoryChips(cats: List<Category>, selected: String, lockedIds: Set<String>
             val c = cats[i]
             Chip(c.name, selected == c.id, c.id in lockedIds) { onSelect(c.id) }
         }
+    }
+}
+
+@Composable
+fun FavoritesChip(selected: Boolean, count: Int, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Row(
+        Modifier
+            .background(if (selected) RedSoft else Slate800, shape)
+            .tvClick(shape, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            if (selected) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+            null,
+            tint = if (selected) Slate950 else Slate300,
+            modifier = Modifier.size(11.dp)
+        )
+        Spacer(Modifier.width(4.dp))
+        Txt("Favorites ($count)", 11, if (selected) Slate950 else Slate300, FontWeight.Bold)
     }
 }
 
