@@ -84,3 +84,10 @@ data class AppSettings(
     val pin: String = "",
     val uiMode: Int = 0
 )
+
+data class FavoriteItem(
+    val key: String,
+    val kind: String,
+    val title: String,
+    val poster: String
+)
