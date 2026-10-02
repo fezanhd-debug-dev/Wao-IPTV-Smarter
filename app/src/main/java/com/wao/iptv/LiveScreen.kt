@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -36,6 +38,7 @@ private fun ChannelRow(
     val cur = list?.firstOrNull { now in it.start..it.end } ?: list?.firstOrNull()
     val frac = if (cur != null && cur.end > cur.start)
         ((now - cur.start).toFloat() / (cur.end - cur.start)).coerceIn(0f, 1f) else 0f
+    val fav = vm.isFavorite("live:${ch.id}")
 
     val shape = RoundedCornerShape(16.dp)
     Row(
@@ -78,14 +81,28 @@ private fun ChannelRow(
                 }
             }
         }
-        Box(
-            Modifier
-                .size(32.dp)
-                .background(if (active) Cyan else Slate800, CircleShape)
-                .tvClick(CircleShape, onClick = onPlay),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Filled.PlayArrow, null, tint = if (active) Slate950 else Slate300, modifier = Modifier.size(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(32.dp).clickable { vm.toggleFavoriteChannel(ch) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    null,
+                    tint = if (fav) RedSoft else Slate500,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            Box(
+                Modifier
+                    .size(32.dp)
+                    .background(if (active) Cyan else Slate800, CircleShape)
+                    .tvClick(CircleShape, onClick = onPlay),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.PlayArrow, null, tint = if (active) Slate950 else Slate300, modifier = Modifier.size(16.dp))
+            }
         }
     }
 }
@@ -96,14 +113,17 @@ fun LiveScreen(vm: AppViewModel, nav: NavController) {
     val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
     var query by remember { mutableStateOf("") }
     var cat by remember { mutableStateOf("") }
+    var showFavorites by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Channel?>(null) }
     var pinFor by remember { mutableStateOf<String?>(null) }
 
     val locked = remember(vm.liveCats, vm.lockActive) {
         if (vm.lockActive) vm.adultIds(vm.liveCats) else emptySet()
     }
-    val filtered = remember(all, query, cat) {
-        all.filter { (cat.isEmpty() || it.categoryId == cat) && (query.isBlank() || it.name.contains(query, true)) }
+    val favCount = remember(vm.favorites) { vm.favorites.count { it.kind == "live" } }
+    val baseList = if (showFavorites) vm.favoriteChannels() else all
+    val filtered = remember(baseList, query, cat, showFavorites) {
+        baseList.filter { (cat.isEmpty() || it.categoryId == cat) && (query.isBlank() || it.name.contains(query, true)) }
     }
     val active = selected ?: filtered.firstOrNull()
 
@@ -134,8 +154,14 @@ fun LiveScreen(vm: AppViewModel, nav: NavController) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             SearchField(query, { query = it }, "Search ${fmtInt(all.size)}+ channels...")
             Spacer(Modifier.height(12.dp))
-            CategoryChips(vm.liveCats, cat, locked) { id ->
-                if (id in locked) pinFor = id else { cat = id; selected = null }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FavoritesChip(showFavorites, favCount) { showFavorites = !showFavorites; selected = null }
+                Spacer(Modifier.width(8.dp))
+                if (!showFavorites) {
+                    CategoryChips(vm.liveCats, cat, locked) { id ->
+                        if (id in locked) pinFor = id else { cat = id; selected = null }
+                    }
+                }
             }
             Spacer(Modifier.height(12.dp))
 
@@ -151,6 +177,11 @@ fun LiveScreen(vm: AppViewModel, nav: NavController) {
                 if (active != null) {
                     VideoSurface(player, AspectRatioFrameLayout.RESIZE_MODE_ZOOM, Modifier.fillMaxSize())
                     Pill("LIVE", Red, Color.White, Modifier.align(Alignment.TopStart).padding(8.dp))
+                    Box(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                        FavButton(vm.isFavorite("live:${active.id}")) {
+                            vm.toggleFavoriteChannel(active)
+                        }
+                    }
                     Row(
                         Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -168,7 +199,10 @@ fun LiveScreen(vm: AppViewModel, nav: NavController) {
                         }
                     }
                 } else {
-                    Txt("Is category me koi channel nahi mila", 12, Slate500, modifier = Modifier.align(Alignment.Center))
+                    Txt(
+                        if (showFavorites) "Abhi koi favorite channel nahi hai" else "Is category me koi channel nahi mila",
+                        12, Slate500, modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             }
         }
