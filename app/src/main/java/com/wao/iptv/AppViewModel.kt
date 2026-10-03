@@ -48,6 +48,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var unlocked by mutableStateOf(false)
     var homeRoute: String = "home"
 
+    var testingConnection by mutableStateOf(false)
+    var connectionTestResult by mutableStateOf<ConnectionTestResult?>(null)
+
+    var newContentMessage by mutableStateOf<String?>(null)
+    var expiryWarningDismissed by mutableStateOf(false)
+
     val epg = mutableStateMapOf<String, List<EpgEntry>>()
     private val epgGate = Semaphore(4)
 
@@ -136,6 +142,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun switchAccount(acc: SavedAccount, onFail: () -> Unit = {}, onSuccess: () -> Unit) {
         if (switching || loading) return
         switching = true
+        expiryWarningDismissed = false
         connect(
             acc.session,
             onFail = { switching = false; onFail() }
@@ -145,11 +152,54 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Days until expiry; null if unknown/not applicable
+    fun daysUntilExpiry(): Int? {
+        val exp = account.expDate
+        if (exp <= 0) return null
+        val now = System.currentTimeMillis() / 1000
+        val diff = exp - now
+        if (diff < 0) return -1
+        return (diff / 86400).toInt()
+    }
+
+    fun testConnection() {
+        val s = session ?: return
+        if (s.type != "xtream" || testingConnection) return
+        testingConnection = true
+        connectionTestResult = null
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) { XtreamApi(s.server, s.username, s.password).testConnection() }
+            connectionTestResult = r
+            testingConnection = false
+        }
+    }
+
+    private fun checkNewContent(accId: String, snap: ContentSnapshot) {
+        val prev = store.loadSnapshot(accId)
+        if (prev != null) {
+            val newLive = (snap.liveCount - prev.liveCount).coerceAtLeast(0)
+            val newMovies = (snap.movieCount - prev.movieCount).coerceAtLeast(0)
+            val newSeries = (snap.seriesCount - prev.seriesCount).coerceAtLeast(0)
+            val parts = mutableListOf<String>()
+            if (newLive > 0) parts.add("$newLive naye channels")
+            if (newMovies > 0) parts.add("$newMovies nayi movies")
+            if (newSeries > 0) parts.add("$newSeries nayi series")
+            if (parts.isNotEmpty()) {
+                newContentMessage = parts.joinToString(", ") + " add hui hain"
+            }
+        }
+        store.saveSnapshot(accId, snap)
+    }
+
+    fun dismissNewContentMessage() { newContentMessage = null }
+    fun dismissExpiryWarning() { expiryWarningDismissed = true }
+
     fun connect(s: Session, onFail: () -> Unit = {}, onSuccess: () -> Unit) {
         if (loading) return
         loading = true
         error = null
         loadingStep = 0
+        newContentMessage = null
         viewModelScope.launch {
             try {
                 if (s.type == "m3u") {
@@ -208,6 +258,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 store.saveSession(s)
                 if (s.type == "xtream") store.saveLast(s.server, s.username)
                 maybeSaveAccount(s)
+                expiryWarningDismissed = false
+                checkNewContent(accountId(s), ContentSnapshot(channels.size, movies.size, seriesList.size))
                 onSuccess()
             } catch (e: Exception) {
                 error = friendly(e)
@@ -240,6 +292,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         nowPlaying = null
         unlocked = false
         error = null
+        connectionTestResult = null
+        newContentMessage = null
     }
 
     suspend fun loadEpg(ch: Channel) {
