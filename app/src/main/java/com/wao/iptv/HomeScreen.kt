@@ -6,12 +6,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,6 +90,43 @@ private fun HistoryCard(h: HistoryItem, onClick: () -> Unit) {
 }
 
 @Composable
+private fun AlertBanner(
+    icon: ImageVector,
+    iconTint: Color,
+    bg: Color,
+    border: Color,
+    text: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    onDismiss: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(bg, RoundedCornerShape(14.dp))
+            .border(1.dp, border, RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Txt(text, 12, Color.White, FontWeight.SemiBold, Modifier.weight(1f), maxLines = 3)
+        if (actionLabel != null && onAction != null) {
+            Spacer(Modifier.width(8.dp))
+            val shape = RoundedCornerShape(8.dp)
+            Txt(
+                actionLabel, 11, iconTint, FontWeight.Bold,
+                modifier = Modifier.tvClick(shape, onClick = onAction).padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+        Box(Modifier.size(22.dp).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Close, null, tint = Slate400, modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+@Composable
 fun HomeScreen(vm: AppViewModel, nav: NavController) {
     val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
     val featured = remember(all) { all.firstOrNull { it.icon.isNotBlank() } ?: all.firstOrNull() }
@@ -94,6 +134,9 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
     LaunchedEffect(featured?.id) { featured?.let { vm.loadEpg(it) } }
     val now = System.currentTimeMillis() / 1000
     val cur = featured?.let { f -> vm.epg[f.id]?.firstOrNull { now in it.start..it.end } }
+
+    val daysLeft = remember(vm.account) { vm.daysUntilExpiry() }
+    val showExpiry = !vm.expiryWarningDismissed && daysLeft != null && daysLeft <= 3
 
     Column(Modifier.fillMaxSize().background(Bg)) {
         Row(
@@ -137,6 +180,38 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
         HLine()
 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+
+            if (showExpiry || vm.newContentMessage != null) {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (showExpiry) {
+                        val msg = when {
+                            daysLeft!! < 0 -> "Aapka account expire ho chuka hai"
+                            daysLeft == 0 -> "Aapka account aaj expire ho raha hai"
+                            daysLeft == 1 -> "Aapka account kal expire ho raha hai"
+                            else -> "Aapka account $daysLeft din me expire ho raha hai"
+                        }
+                        AlertBanner(
+                            icon = Icons.Filled.WarningAmber,
+                            iconTint = Amber,
+                            bg = Color(0x33FBBF24),
+                            border = Amber.copy(alpha = 0.4f),
+                            text = msg,
+                            onDismiss = { vm.dismissExpiryWarning() }
+                        )
+                    }
+                    vm.newContentMessage?.let { msg ->
+                        AlertBanner(
+                            icon = Icons.Filled.NewReleases,
+                            iconTint = Emerald,
+                            bg = Color(0x3334D399),
+                            border = Emerald.copy(alpha = 0.4f),
+                            text = msg,
+                            onDismiss = { vm.dismissNewContentMessage() }
+                        )
+                    }
+                }
+            }
+
             if (featured != null) {
                 val heroShape = RoundedCornerShape(24.dp)
                 Box(
