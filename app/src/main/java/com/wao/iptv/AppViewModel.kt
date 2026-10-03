@@ -9,8 +9,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -18,21 +16,12 @@ import kotlinx.coroutines.withContext
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-internal class Loaded(
-    val account: AccountInfo,
-    val liveCats: List<Category>,
-    val channels: List<Channel>,
-    val movieCats: List<Category>,
-    val movies: List<VodItem>,
-    val seriesCats: List<Category>,
-    val series: List<VodItem>
-)
-
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
 
     var session by mutableStateOf<Session?>(store.loadSession())
     var loading by mutableStateOf(false)
+    var loadingStep by mutableStateOf(0) // 0=idle/connecting, 1=live, 2=movies, 3=series
     var switching by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var account by mutableStateOf(AccountInfo())
@@ -160,16 +149,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (loading) return
         loading = true
         error = null
+        loadingStep = 0
         viewModelScope.launch {
             try {
-                val r = withContext(Dispatchers.IO) { fetchAll(s) }
-                account = r.account
-                liveCats = r.liveCats
-                channels = r.channels
-                movieCats = r.movieCats
-                movies = r.movies
-                seriesCats = r.seriesCats
-                seriesList = r.series
+                if (s.type == "m3u") {
+                    val text = withContext(Dispatchers.IO) { httpGet(s.m3uUrl) }
+                    if (!text.contains("#EXTINF")) throw RuntimeException("Ye valid M3U playlist nahi hai")
+                    loadingStep = 1
+                    val r = withContext(Dispatchers.Default) { parseM3u(text) }
+                    liveCats = r.liveCats
+                    channels = r.live
+                    loadingStep = 2
+                    movieCats = r.movieCats
+                    movies = r.movies
+                    loadingStep = 3
+                    seriesCats = emptyList()
+                    seriesList = emptyList()
+                    account = AccountInfo("M3U Playlist", "Active")
+                } else {
+                    val api = XtreamApi(s.server, s.username, s.password)
+                    val acc = withContext(Dispatchers.IO) { api.authenticate() }
+
+                    loadingStep = 1
+                    var liveErr: Exception? = null
+                    val live = withContext(Dispatchers.IO) {
+                        runCatching { api.liveChannels() }
+                            .onFailure { e -> if (e is Exception) liveErr = e }
+                            .getOrDefault(emptyList())
+                    }
+                    liveCats = withContext(Dispatchers.IO) {
+                        runCatching { api.liveCategories() }.getOrDefault(emptyList())
+                    }
+                    channels = live
+
+                    loadingStep = 2
+                    movies = withContext(Dispatchers.IO) {
+                        runCatching { api.movies() }.getOrDefault(emptyList())
+                    }
+                    movieCats = withContext(Dispatchers.IO) {
+                        runCatching { api.movieCategories() }.getOrDefault(emptyList())
+                    }
+
+                    loadingStep = 3
+                    seriesList = withContext(Dispatchers.IO) {
+                        runCatching { api.series() }.getOrDefault(emptyList())
+                    }
+                    seriesCats = withContext(Dispatchers.IO) {
+                        runCatching { api.seriesCategories() }.getOrDefault(emptyList())
+                    }
+
+                    if (channels.isEmpty() && movies.isEmpty() && seriesList.isEmpty()) {
+                        throw (liveErr ?: RuntimeException("Is account me koi channel ya movie nahi mili"))
+                    }
+                    account = acc
+                }
+
                 session = s
                 store.saveSession(s)
                 if (s.type == "xtream") store.saveLast(s.server, s.username)
@@ -180,38 +214,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 onFail()
             } finally {
                 loading = false
+                loadingStep = 0
             }
-        }
-    }
-
-    private suspend fun fetchAll(s: Session): Loaded {
-        if (s.type == "m3u") {
-            val text = httpGet(s.m3uUrl)
-            if (!text.contains("#EXTINF")) throw RuntimeException("Ye valid M3U playlist nahi hai")
-            val r = parseM3u(text)
-            return Loaded(
-                AccountInfo("M3U Playlist", "Active"),
-                r.liveCats, r.live, r.movieCats, r.movies, emptyList(), emptyList()
-            )
-        }
-        val api = XtreamApi(s.server, s.username, s.password)
-        val acc = api.authenticate()
-        return coroutineScope {
-            val liveC = async { runCatching { api.liveCategories() }.getOrDefault(emptyList()) }
-            val liveS = async { runCatching { api.liveChannels() } }
-            val movC = async { runCatching { api.movieCategories() }.getOrDefault(emptyList()) }
-            val movS = async { runCatching { api.movies() }.getOrDefault(emptyList()) }
-            val serC = async { runCatching { api.seriesCategories() }.getOrDefault(emptyList()) }
-            val serS = async { runCatching { api.series() }.getOrDefault(emptyList()) }
-
-            val liveRes = liveS.await()
-            val live = liveRes.getOrDefault(emptyList())
-            val mov = movS.await()
-            val ser = serS.await()
-            if (live.isEmpty() && mov.isEmpty() && ser.isEmpty()) {
-                throw (liveRes.exceptionOrNull() ?: RuntimeException("Is account me koi channel ya movie nahi mili"))
-            }
-            Loaded(acc, liveC.await(), live, movC.await(), mov, serC.await(), ser)
         }
     }
 
