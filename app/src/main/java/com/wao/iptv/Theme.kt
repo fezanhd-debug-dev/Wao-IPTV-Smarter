@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
@@ -173,6 +174,39 @@ fun FavButton(active: Boolean, size: Dp = 32.dp, onClick: () -> Unit) {
             tint = if (active) RedSoft else Color.White,
             modifier = Modifier.size(size * 0.55f)
         )
+    }
+}
+
+@Composable
+fun LoadStepsGrid(step: Int, modifier: Modifier = Modifier) {
+    data class StepInfo(val label: String, val idx: Int)
+    val steps = listOf(StepInfo("Live TV", 1), StepInfo("Movies", 2), StepInfo("Series", 3))
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        steps.forEach { info ->
+            val done = step > info.idx
+            val active = step == info.idx
+            val bg = when { done -> Emerald.copy(alpha = 0.12f); active -> Cyan.copy(alpha = 0.12f); else -> Slate900 }
+            val border = when { done -> Emerald; active -> Cyan; else -> Slate800 }
+            val fg = when { done -> Emerald; active -> Cyan; else -> Slate500 }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .background(bg, RoundedCornerShape(12.dp))
+                    .border(1.dp, border, RoundedCornerShape(12.dp))
+                    .padding(vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                    when {
+                        done -> Icon(Icons.Filled.Check, null, tint = Emerald, modifier = Modifier.size(16.dp))
+                        active -> CircularProgressIndicator(color = Cyan, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                        else -> Box(Modifier.size(8.dp).background(Slate700, CircleShape))
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Txt(info.label, 10, fg, FontWeight.Bold)
+            }
+        }
     }
 }
 
