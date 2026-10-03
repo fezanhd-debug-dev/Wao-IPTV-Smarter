@@ -119,6 +119,18 @@ class XtreamApi(private val server: String, private val user: String, private va
         )
     }
 
+    fun testConnection(): ConnectionTestResult {
+        val start = System.currentTimeMillis()
+        return try {
+            val acc = authenticate()
+            val ms = System.currentTimeMillis() - start
+            ConnectionTestResult(true, "Server theek chal raha hai (${acc.status.ifBlank { "Active" }})", ms)
+        } catch (e: Exception) {
+            val ms = System.currentTimeMillis() - start
+            ConnectionTestResult(false, e.message ?: "Connect nahi ho saka", ms)
+        }
+    }
+
     private fun cats(action: String): List<Category> =
         httpJsonArray(url(action)) { m -> Category(m["category_id"] ?: "", m["category_name"] ?: "") }
 
