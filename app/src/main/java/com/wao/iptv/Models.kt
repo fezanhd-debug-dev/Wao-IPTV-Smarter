@@ -91,3 +91,15 @@ data class FavoriteItem(
     val title: String,
     val poster: String
 )
+
+data class ConnectionTestResult(
+    val ok: Boolean,
+    val message: String,
+    val responseMs: Long
+)
+
+data class ContentSnapshot(
+    val liveCount: Int = 0,
+    val movieCount: Int = 0,
+    val seriesCount: Int = 0
+)
