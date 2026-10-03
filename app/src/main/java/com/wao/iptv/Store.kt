@@ -80,4 +80,19 @@ class Store(context: Context) {
     fun saveFavorites(list: List<FavoriteItem>) {
         sp.edit().putString("favorites", gson.toJson(list)).apply()
     }
+
+    private fun snapshotKey(accountId: String) = "snapshot_$accountId"
+
+    fun loadSnapshot(accountId: String): ContentSnapshot? {
+        val j = sp.getString(snapshotKey(accountId), null) ?: return null
+        return try {
+            gson.fromJson(j, ContentSnapshot::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun saveSnapshot(accountId: String, snap: ContentSnapshot) {
+        sp.edit().putString(snapshotKey(accountId), gson.toJson(snap)).apply()
+    }
 }
