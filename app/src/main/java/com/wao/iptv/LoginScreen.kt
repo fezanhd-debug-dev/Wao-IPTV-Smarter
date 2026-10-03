@@ -30,6 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
+private fun stepLabel(step: Int): String = when (step) {
+    1 -> "LOADING LIVE TV..."
+    2 -> "LOADING MOVIES..."
+    3 -> "LOADING SERIES..."
+    else -> "CONNECTING..."
+}
+
 @Composable
 fun BootScreen(vm: AppViewModel, nav: NavController) {
     LaunchedEffect(Unit) {
@@ -49,9 +56,9 @@ fun BootScreen(vm: AppViewModel, nav: NavController) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             BigLogo()
             Spacer(Modifier.height(24.dp))
-            CircularProgressIndicator(color = Cyan, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.height(12.dp))
-            Txt("Channels load ho rahe hain...", 12, Slate400)
+            Txt(stepLabel(vm.loadingStep), 12, Cyan, FontWeight.Bold, spacing = 1f)
+            Spacer(Modifier.height(16.dp))
+            LoadStepsGrid(vm.loadingStep, Modifier.widthIn(max = 320.dp))
         }
     }
 }
@@ -204,7 +211,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(10.dp))
-                            Txt("LOADING CHANNELS...", 14, Slate950, FontWeight.Black, spacing = 1f)
+                            Txt(stepLabel(vm.loadingStep), 13, Slate950, FontWeight.Black, spacing = 1f)
                         }
                     } else {
                         Txt(
@@ -212,6 +219,11 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                             14, Slate950, FontWeight.Black, spacing = 1f
                         )
                     }
+                }
+
+                if (vm.loading) {
+                    Spacer(Modifier.height(16.dp))
+                    LoadStepsGrid(vm.loadingStep)
                 }
 
                 val err = localError ?: vm.error
