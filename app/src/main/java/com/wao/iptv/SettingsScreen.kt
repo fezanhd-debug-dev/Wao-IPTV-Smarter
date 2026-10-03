@@ -68,6 +68,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val currentId = vm.currentAccountId()
+    val daysLeft = remember(vm.account) { vm.daysUntilExpiry() }
 
     Column(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -86,13 +87,55 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
                         val exp = vm.account.expDate
                         if (exp > 0) {
                             val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                            Txt("Expires: ${df.format(Date(exp * 1000))}", 11, Slate400, modifier = Modifier.padding(top = 2.dp))
+                            val expColor = if (daysLeft != null && daysLeft <= 3) Amber else Slate400
+                            Txt("Expires: ${df.format(Date(exp * 1000))}", 11, expColor, modifier = Modifier.padding(top = 2.dp))
+                            if (daysLeft != null && daysLeft <= 3) {
+                                val label = when {
+                                    daysLeft < 0 -> "Expired"
+                                    daysLeft == 0 -> "Expires today"
+                                    daysLeft == 1 -> "1 din baqi"
+                                    else -> "$daysLeft din baqi"
+                                }
+                                Pill(label, Color(0x33FBBF24), Amber, Modifier.padding(top = 4.dp))
+                            }
                         }
                         if (vm.account.maxConnections.isNotBlank()) {
                             Txt("Max connections: ${vm.account.maxConnections}", 11, Slate500)
                         }
                     }
                     Pill(vm.account.status.ifBlank { "Active" }, Color(0x3334D399), Emerald)
+                }
+
+                if (vm.session?.type == "xtream") {
+                    Spacer(Modifier.height(12.dp))
+                    HLine()
+                    Spacer(Modifier.height(12.dp))
+                    val btnShape = RoundedCornerShape(10.dp)
+                    Row(
+                        Modifier
+                            .background(Slate900, btnShape)
+                            .border(1.dp, Slate700, btnShape)
+                            .tvClick(btnShape) { vm.testConnection() }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (vm.testingConnection) {
+                            CircularProgressIndicator(color = Cyan, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Txt("Testing...", 12, Cyan, FontWeight.Bold)
+                        } else {
+                            Txt("Test Connection", 12, Cyan, FontWeight.Bold)
+                        }
+                    }
+                    vm.connectionTestResult?.let { r ->
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Pill(if (r.ok) "OK" else "FAILED", if (r.ok) Color(0x3334D399) else Color(0x33DC2626), if (r.ok) Emerald else RedSoft)
+                            Spacer(Modifier.width(8.dp))
+                            Txt("${r.responseMs} ms", 11, Slate400, FontWeight.SemiBold)
+                        }
+                        Txt(r.message, 11, Slate400, modifier = Modifier.padding(top = 4.dp))
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
