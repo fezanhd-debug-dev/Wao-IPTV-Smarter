@@ -32,7 +32,9 @@ class Store(context: Context) {
     fun loadSettings(): AppSettings {
         val j = sp.getString("settings", null) ?: return AppSettings()
         return try {
-            gson.fromJson(j, AppSettings::class.java) ?: AppSettings()
+            val s = gson.fromJson(j, AppSettings::class.java) ?: return AppSettings()
+            val safeLang = if (s.lang == null || (s.lang as String).isBlank()) "en" else s.lang
+            s.copy(lang = safeLang)
         } catch (e: Exception) {
             AppSettings()
         }
