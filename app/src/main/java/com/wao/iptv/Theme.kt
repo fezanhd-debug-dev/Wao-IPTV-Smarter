@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
@@ -178,9 +179,9 @@ fun FavButton(active: Boolean, size: Dp = 32.dp, onClick: () -> Unit) {
 }
 
 @Composable
-fun LoadStepsGrid(step: Int, modifier: Modifier = Modifier) {
-    data class StepInfo(val label: String, val idx: Int)
-    val steps = listOf(StepInfo("Live TV", 1), StepInfo("Movies", 2), StepInfo("Series", 3))
+fun LoadStepsGrid(step: Int, lang: String = "en", modifier: Modifier = Modifier) {
+    data class StepInfo(val key: String, val idx: Int)
+    val steps = listOf(StepInfo("loading_live", 1), StepInfo("loading_movies", 2), StepInfo("loading_series", 3))
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         steps.forEach { info ->
             val done = step > info.idx
@@ -204,7 +205,7 @@ fun LoadStepsGrid(step: Int, modifier: Modifier = Modifier) {
                     }
                 }
                 Spacer(Modifier.height(6.dp))
-                Txt(info.label, 10, fg, FontWeight.Bold)
+                Txt(tr(lang, info.key).removeSuffix("...").trim(), 10, fg, FontWeight.Bold)
             }
         }
     }
@@ -290,15 +291,60 @@ fun FavoritesChip(selected: Boolean, count: Int, onClick: () -> Unit) {
     }
 }
 
+@Composable
+fun LanguagePicker(currentCode: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    val current = APP_LANGUAGES.firstOrNull { it.code == currentCode } ?: APP_LANGUAGES[0]
+    Box(modifier) {
+        Row(
+            Modifier
+                .glass(RoundedCornerShape(12.dp))
+                .tvClick(RoundedCornerShape(12.dp)) { expanded = true }
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.Language, null, tint = Cyan, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Txt(current.flag, 13)
+            Spacer(Modifier.width(4.dp))
+            Txt(current.native, 11, Color.White, FontWeight.Bold)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color(0xFF121727))
+        ) {
+            APP_LANGUAGES.forEach { l ->
+                val isCurrent = l.code == currentCode
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Txt(l.flag, 16)
+                            Spacer(Modifier.width(10.dp))
+                            Txt(l.native, 13, if (isCurrent) Cyan else Color.White, if (isCurrent) FontWeight.Bold else FontWeight.Normal)
+                            if (isCurrent) {
+                                Spacer(Modifier.width(8.dp))
+                                Icon(Icons.Filled.Check, null, tint = Cyan, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    },
+                    onClick = { onSelect(l.code); expanded = false }
+                )
+            }
+        }
+    }
+}
+
 private data class NavEntry(val route: String, val label: String, val icon: ImageVector)
 
 @Composable
 fun BottomNav(current: String, vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     val entries = listOf(
-        NavEntry(vm.homeRoute, "Home", Icons.Filled.Home),
-        NavEntry("live", "Live TV", Icons.Filled.LiveTv),
-        NavEntry("vod", "VOD", Icons.Filled.Movie),
-        NavEntry("settings", "Settings", Icons.Filled.Settings)
+        NavEntry(vm.homeRoute, tr(lang, "nav_home"), Icons.Filled.Home),
+        NavEntry("live", tr(lang, "nav_live"), Icons.Filled.LiveTv),
+        NavEntry("vod", tr(lang, "nav_vod"), Icons.Filled.Movie),
+        NavEntry("settings", tr(lang, "nav_settings"), Icons.Filled.Settings)
     )
     Column(Modifier.fillMaxWidth().background(Bg)) {
         HLine()
