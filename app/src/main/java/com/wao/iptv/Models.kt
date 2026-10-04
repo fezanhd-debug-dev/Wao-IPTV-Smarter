@@ -82,7 +82,8 @@ data class AppSettings(
     val bufferMode: Int = 1,
     val pinEnabled: Boolean = false,
     val pin: String = "",
-    val uiMode: Int = 0
+    val uiMode: Int = 0,
+    val lang: String = "en"
 )
 
 data class FavoriteItem(
