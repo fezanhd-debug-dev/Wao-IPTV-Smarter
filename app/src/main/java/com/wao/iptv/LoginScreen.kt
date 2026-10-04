@@ -183,7 +183,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Txt(tr(lang, "select_language"), 11, Slate400, FontWeight.SemiBold)
-                    LanguagePicker(lang) { code -> vm.updateSettings(vm.settings.copy(lang = code)) }
+                    LanguagePicker(lang, onSelect = { code -> vm.updateSettings(vm.settings.copy(lang = code)) })
                 }
                 Spacer(Modifier.height(16.dp))
 
