@@ -30,15 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
-private fun stepLabel(step: Int): String = when (step) {
-    1 -> "LOADING LIVE TV..."
-    2 -> "LOADING MOVIES..."
-    3 -> "LOADING SERIES..."
-    else -> "CONNECTING..."
-}
-
 @Composable
 fun BootScreen(vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     LaunchedEffect(Unit) {
         val s = vm.session
         if (s == null) {
@@ -56,11 +50,18 @@ fun BootScreen(vm: AppViewModel, nav: NavController) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             BigLogo()
             Spacer(Modifier.height(24.dp))
-            Txt(stepLabel(vm.loadingStep), 12, Cyan, FontWeight.Bold, spacing = 1f)
+            Txt(tr(lang, if (vm.loadingStep in 1..3) "loading_live".let { stepKey(vm.loadingStep) } else "connecting"), 12, Cyan, FontWeight.Bold, spacing = 1f)
             Spacer(Modifier.height(16.dp))
-            LoadStepsGrid(vm.loadingStep, Modifier.widthIn(max = 320.dp))
+            LoadStepsGrid(vm.loadingStep, lang, Modifier.widthIn(max = 320.dp))
         }
     }
+}
+
+private fun stepKey(step: Int): String = when (step) {
+    1 -> "loading_live"
+    2 -> "loading_movies"
+    3 -> "loading_series"
+    else -> "connecting"
 }
 
 @Composable
@@ -125,6 +126,7 @@ private fun ModeTab(text: String, icon: ImageVector, selected: Boolean, modifier
 
 @Composable
 fun LoginScreen(vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     var mode by remember { mutableStateOf("xtream") }
     var server by remember { mutableStateOf(vm.lastServer) }
     var user by remember { mutableStateOf(vm.lastUser) }
@@ -171,10 +173,20 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(16.dp))
             Txt("Wao IPTV Smarter", 26, Color.White, FontWeight.Black, spacing = 1f)
             Spacer(Modifier.height(4.dp))
-            Txt("STREAM ANYTIME • ANYWHERE", 12, Cyan, FontWeight.SemiBold, spacing = 2f)
+            Txt(tr(lang, "tagline").uppercase(), 12, Cyan, FontWeight.SemiBold, spacing = 2f, align = TextAlign.Center)
             Spacer(Modifier.height(28.dp))
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(24.dp)).padding(24.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Txt(tr(lang, "select_language"), 11, Slate400, FontWeight.SemiBold)
+                    LanguagePicker(lang) { code -> vm.updateSettings(vm.settings.copy(lang = code)) }
+                }
+                Spacer(Modifier.height(16.dp))
+
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -182,19 +194,19 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ModeTab("Xtream Codes", Icons.Filled.Person, mode == "xtream", Modifier.weight(1f)) { mode = "xtream" }
-                    ModeTab("M3U Playlist", Icons.Filled.Link, mode == "m3u", Modifier.weight(1f)) { mode = "m3u" }
+                    ModeTab(tr(lang, "tab_xtream"), Icons.Filled.Person, mode == "xtream", Modifier.weight(1f)) { mode = "xtream" }
+                    ModeTab(tr(lang, "tab_m3u"), Icons.Filled.Link, mode == "m3u", Modifier.weight(1f)) { mode = "m3u" }
                 }
                 Spacer(Modifier.height(24.dp))
 
                 if (mode == "xtream") {
-                    LoginField("Server URL", Icons.Filled.Public, server, { server = it }, "http://my-iptv-server.com:8080", KeyboardType.Uri)
+                    LoginField(tr(lang, "label_server"), Icons.Filled.Public, server, { server = it }, tr(lang, "ph_server"), KeyboardType.Uri)
                     Spacer(Modifier.height(16.dp))
-                    LoginField("Username", Icons.Filled.Person, user, { user = it }, "Enter Xtream username")
+                    LoginField(tr(lang, "label_username"), Icons.Filled.Person, user, { user = it }, tr(lang, "ph_username"))
                     Spacer(Modifier.height(16.dp))
-                    LoginField("Password", Icons.Filled.Lock, pass, { pass = it }, "••••••••", password = true)
+                    LoginField(tr(lang, "label_password"), Icons.Filled.Lock, pass, { pass = it }, "••••••••", password = true)
                 } else {
-                    LoginField("M3U Playlist URL", Icons.Filled.Link, m3u, { m3u = it }, "https://provider.com/get.php?username=...", KeyboardType.Uri)
+                    LoginField(tr(lang, "tab_m3u"), Icons.Filled.Link, m3u, { m3u = it }, "https://provider.com/get.php?username=...", KeyboardType.Uri)
                 }
                 Spacer(Modifier.height(16.dp))
 
@@ -211,11 +223,11 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(10.dp))
-                            Txt(stepLabel(vm.loadingStep), 13, Slate950, FontWeight.Black, spacing = 1f)
+                            Txt(tr(lang, stepKey(vm.loadingStep)), 13, Slate950, FontWeight.Black, spacing = 1f)
                         }
                     } else {
                         Txt(
-                            if (mode == "xtream") "CONNECT & LOAD CHANNELS" else "LOAD M3U PLAYLIST",
+                            if (mode == "xtream") tr(lang, "btn_connect") else tr(lang, "btn_loadm3u"),
                             14, Slate950, FontWeight.Black, spacing = 1f
                         )
                     }
@@ -223,7 +235,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
 
                 if (vm.loading) {
                     Spacer(Modifier.height(16.dp))
-                    LoadStepsGrid(vm.loadingStep)
+                    LoadStepsGrid(vm.loadingStep, lang)
                 }
 
                 val err = localError ?: vm.error
@@ -235,7 +247,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                 Spacer(Modifier.height(24.dp))
                 HLine()
                 Spacer(Modifier.height(16.dp))
-                Txt("Powered by MediaCodec HW+ & ExoPlayer", 12, Slate400, modifier = Modifier.fillMaxWidth(), align = TextAlign.Center)
+                Txt(tr(lang, "powered_by"), 12, Slate400, modifier = Modifier.fillMaxWidth(), align = TextAlign.Center)
             }
         }
     }
