@@ -55,6 +55,7 @@ private fun Slate600() = Color(0xFF475569)
 
 @Composable
 fun SettingsScreen(vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var pinStage by remember { mutableStateOf(0) }
     var firstPin by remember { mutableStateOf("") }
@@ -72,7 +73,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
 
     Column(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Txt("App Settings & Decoder", 18, Color.White, FontWeight.Black)
+            Txt(tr(lang, "settings_title"), 18, Color.White, FontWeight.Black)
             Txt("Manage hardware codecs, cache & parental PIN", 11, Slate400, modifier = Modifier.padding(top = 2.dp))
         }
         HLine()
@@ -80,9 +81,16 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp)) {
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
+                Txt(tr(lang, "select_language"), 11, Cyan, FontWeight.Bold, spacing = 0.6f)
+                Spacer(Modifier.height(10.dp))
+                LanguagePicker(lang, onSelect = { code -> vm.updateSettings(vm.settings.copy(lang = code)) }, modifier = Modifier.fillMaxWidth())
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        Txt("ACCOUNT", 10, Cyan, FontWeight.Bold, spacing = 0.8f)
+                        Txt(tr(lang, "account").uppercase(), 10, Cyan, FontWeight.Bold, spacing = 0.8f)
                         Txt(vm.account.username.ifBlank { "Guest" }, 15, Color.White, FontWeight.Bold, Modifier.padding(top = 2.dp))
                         val exp = vm.account.expDate
                         if (exp > 0) {
@@ -122,9 +130,9 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
                         if (vm.testingConnection) {
                             CircularProgressIndicator(color = Cyan, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(8.dp))
-                            Txt("Testing...", 12, Cyan, FontWeight.Bold)
+                            Txt("...", 12, Cyan, FontWeight.Bold)
                         } else {
-                            Txt("Test Connection", 12, Cyan, FontWeight.Bold)
+                            Txt(tr(lang, "test_connection"), 12, Cyan, FontWeight.Bold)
                         }
                     }
                     vm.connectionTestResult?.let { r ->
@@ -188,7 +196,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
             }
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
-                Txt("PLAYER ENGINE", 11, Cyan, FontWeight.Bold, spacing = 0.6f)
+                Txt(tr(lang, "player_engine").uppercase(), 11, Cyan, FontWeight.Bold, spacing = 0.6f)
                 Spacer(Modifier.height(10.dp))
                 RadioRow("WAO ExoPlayer (HW+ Recommended)", "Media3 hardware decoding", vm.settings.engine == 0) {
                     vm.updateSettings(vm.settings.copy(engine = 0))
@@ -199,7 +207,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(16.dp))
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
-                Txt("BUFFER / STREAMING MODE", 11, Cyan, FontWeight.Bold, spacing = 0.6f)
+                Txt(tr(lang, "buffer_mode").uppercase(), 11, Cyan, FontWeight.Bold, spacing = 0.6f)
                 Spacer(Modifier.height(10.dp))
                 RadioRow("Low Latency", "Kam buffer, fast start, weak net par ruk sakta hai", vm.settings.bufferMode == 0) {
                     vm.updateSettings(vm.settings.copy(bufferMode = 0))
@@ -216,7 +224,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(16.dp))
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
-                Txt("PARENTAL LOCK (4-DIGIT PIN)", 11, Purple, FontWeight.Bold, spacing = 0.6f)
+                Txt(tr(lang, "parental_lock").uppercase(), 11, Purple, FontWeight.Bold, spacing = 0.6f)
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Txt("Master PIN Enforcement", 12, Slate300)
@@ -251,7 +259,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
             Spacer(Modifier.height(16.dp))
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(16.dp)).padding(16.dp)) {
-                Txt("APP UPDATE", 11, Cyan, FontWeight.Bold, spacing = 0.6f)
+                Txt(tr(lang, "app_update").uppercase(), 11, Cyan, FontWeight.Bold, spacing = 0.6f)
                 Spacer(Modifier.height(6.dp))
                 Txt("Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", 11, Slate400)
                 Spacer(Modifier.height(10.dp))
@@ -325,7 +333,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavController) {
             ) {
                 Icon(Icons.Filled.Logout, null, tint = RedSoft, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Txt("Logout / Server Change Karein", 12, RedSoft, FontWeight.Bold)
+                Txt(tr(lang, "logout"), 12, RedSoft, FontWeight.Bold)
             }
             Spacer(Modifier.height(24.dp))
         }
