@@ -139,13 +139,13 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
         val s: Session
         if (mode == "xtream") {
             if (server.isBlank() || user.isBlank() || pass.isBlank()) {
-                localError = "Server URL, username aur password teeno bharein"
+                                localError = tr(lang, "err_fill_xtream")
                 return
             }
             s = Session("xtream", normalizeServer(server), user.trim(), pass.trim())
         } else {
             if (m3u.isBlank()) {
-                localError = "M3U link paste karein"
+                                localError = tr(lang, "err_fill_m3u")
                 return
             }
             s = Session("m3u", m3uUrl = m3u.trim())
