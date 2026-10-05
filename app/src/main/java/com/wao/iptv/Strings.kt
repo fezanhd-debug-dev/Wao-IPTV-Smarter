@@ -44,7 +44,9 @@ private val EN = mapOf(
     "loading_live" to "LOADING LIVE TV...",
     "loading_movies" to "LOADING MOVIES...",
     "loading_series" to "LOADING SERIES...",
-    "connecting" to "CONNECTING..."
+    "connecting" to "CONNECTING...",
+    "err_fill_xtream" to "Please fill Server URL, Username and Password",
+    "err_fill_m3u" to "Please paste the M3U link"
 )
 
 private val UR_ROMAN = mapOf(
@@ -75,7 +77,9 @@ private val UR_ROMAN = mapOf(
     "loading_live" to "LIVE TV LOAD HO RAHA HAI...",
     "loading_movies" to "MOVIES LOAD HO RAHI HAIN...",
     "loading_series" to "SERIES LOAD HO RAHI HAIN...",
-    "connecting" to "CONNECT HO RAHA HAI..."
+    "connecting" to "CONNECT HO RAHA HAI...",
+    "err_fill_xtream" to "Server URL, username aur password teeno bharein",
+    "err_fill_m3u" to "M3U link paste karein"
 )
 
 private val UR = mapOf(
@@ -106,7 +110,9 @@ private val UR = mapOf(
     "loading_live" to "لائیو ٹی وی لوڈ ہو رہا ہے...",
     "loading_movies" to "موویز لوڈ ہو رہی ہیں...",
     "loading_series" to "سیریز لوڈ ہو رہی ہیں...",
-    "connecting" to "کنیکٹ ہو رہا ہے..."
+    "connecting" to "کنیکٹ ہو رہا ہے...",
+    "err_fill_xtream" to "سرور یو آر ایل، یوزر نیم اور پاسورڈ تینوں بھریں",
+    "err_fill_m3u" to "ایم تھری یو لنک پیسٹ کریں"
 )
 
 private val AR = mapOf(
@@ -137,7 +143,9 @@ private val AR = mapOf(
     "loading_live" to "جارٍ تحميل البث المباشر...",
     "loading_movies" to "جارٍ تحميل الأفلام...",
     "loading_series" to "جارٍ تحميل المسلسلات...",
-    "connecting" to "جارٍ الاتصال..."
+    "connecting" to "جارٍ الاتصال...",
+    "err_fill_xtream" to "يرجى ملء رابط الخادم واسم المستخدم وكلمة المرور",
+    "err_fill_m3u" to "يرجى لصق رابط M3U"
 )
 
 private val PS = mapOf(
@@ -168,7 +176,9 @@ private val PS = mapOf(
     "loading_live" to "ژوندی ټی وی لوډ کیږي...",
     "loading_movies" to "فلمونه لوډ کیږي...",
     "loading_series" to "سیریزونه لوډ کیږي...",
-    "connecting" to "نښلول کیږي..."
+    "connecting" to "نښلول کیږي...",
+    "err_fill_xtream" to "د سرور یو آر ال، کارن نوم او پاسورډ ډک کړئ",
+    "err_fill_m3u" to "د M3U لینک پیسټ کړئ"
 )
 
 private val SD = mapOf(
@@ -199,7 +209,9 @@ private val SD = mapOf(
     "loading_live" to "لائيو ٽي وي لوڊ ٿي رهيو آهي...",
     "loading_movies" to "موويز لوڊ ٿي رهيون آهن...",
     "loading_series" to "سيريز لوڊ ٿي رهيون آهن...",
-    "connecting" to "ڪنيڪٽ ٿي رهيو آهي..."
+    "connecting" to "ڪنيڪٽ ٿي رهيو آهي...",
+    "err_fill_xtream" to "سرور يو آر ايل، يوزرنيم ۽ پاسورڊ ٽيئي ڀريو",
+    "err_fill_m3u" to "M3U لنڪ پيسٽ ڪريو"
 )
 
 private val ES = mapOf(
@@ -230,7 +242,9 @@ private val ES = mapOf(
     "loading_live" to "CARGANDO TV EN VIVO...",
     "loading_movies" to "CARGANDO PELÍCULAS...",
     "loading_series" to "CARGANDO SERIES...",
-    "connecting" to "CONECTANDO..."
+    "connecting" to "CONECTANDO...",
+    "err_fill_xtream" to "Completa la URL del servidor, usuario y contraseña",
+    "err_fill_m3u" to "Pega el enlace M3U"
 )
 
 private val FR = mapOf(
@@ -261,7 +275,9 @@ private val FR = mapOf(
     "loading_live" to "CHARGEMENT DE LA TV EN DIRECT...",
     "loading_movies" to "CHARGEMENT DES FILMS...",
     "loading_series" to "CHARGEMENT DES SÉRIES...",
-    "connecting" to "CONNEXION..."
+    "connecting" to "CONNEXION...",
+    "err_fill_xtream" to "Veuillez remplir l'URL du serveur, le nom d'utilisateur et le mot de passe",
+    "err_fill_m3u" to "Veuillez coller le lien M3U"
 )
 
 private val HI = mapOf(
@@ -292,7 +308,9 @@ private val HI = mapOf(
     "loading_live" to "लाइव टीवी लोड हो रहा है...",
     "loading_movies" to "मूवीज़ लोड हो रही हैं...",
     "loading_series" to "सीरीज़ लोड हो रही हैं...",
-    "connecting" to "कनेक्ट हो रहा है..."
+    "connecting" to "कनेक्ट हो रहा है...",
+    "err_fill_xtream" to "सर्वर यूआरएल, यूज़रनेम और पासवर्ड तीनों भरें",
+    "err_fill_m3u" to "M3U लिंक पेस्ट करें"
 )
 
 private val ZH = mapOf(
@@ -323,7 +341,9 @@ private val ZH = mapOf(
     "loading_live" to "正在加载直播...",
     "loading_movies" to "正在加载电影...",
     "loading_series" to "正在加载剧集...",
-    "connecting" to "正在连接..."
+    "connecting" to "正在连接...",
+    "err_fill_xtream" to "请填写服务器地址、用户名和密码",
+    "err_fill_m3u" to "请粘贴 M3U 链接"
 )
 
 private val RU = mapOf(
@@ -354,7 +374,9 @@ private val RU = mapOf(
     "loading_live" to "ЗАГРУЗКА ПРЯМОГО ЭФИРА...",
     "loading_movies" to "ЗАГРУЗКА ФИЛЬМОВ...",
     "loading_series" to "ЗАГРУЗКА СЕРИАЛОВ...",
-    "connecting" to "ПОДКЛЮЧЕНИЕ..."
+    "connecting" to "ПОДКЛЮЧЕНИЕ...",
+    "err_fill_xtream" to "Заполните URL сервера, имя пользователя и пароль",
+    "err_fill_m3u" to "Вставьте ссылку M3U"
 )
 
 private val ALL_LANGS: Map<String, Map<String, String>> = mapOf(
