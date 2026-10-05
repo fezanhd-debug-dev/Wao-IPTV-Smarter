@@ -93,7 +93,7 @@ class XtreamApi(private val server: String, private val user: String, private va
     private fun base() = "$server/player_api.php?username=${enc(user)}&password=${enc(pass)}"
     private fun url(action: String, extra: String = "") = "${base()}&action=$action$extra"
 
-        fun authenticate(): AccountInfo {
+    fun authenticate(): AccountInfo {
         val root: JsonElement = try {
             JsonParser.parseString(httpGet(base()))
         } catch (e: Exception) {
