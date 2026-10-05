@@ -50,7 +50,7 @@ fun BootScreen(vm: AppViewModel, nav: NavController) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             BigLogo()
             Spacer(Modifier.height(24.dp))
-            Txt(tr(lang, if (vm.loadingStep in 1..3) "loading_live".let { stepKey(vm.loadingStep) } else "connecting"), 12, Cyan, FontWeight.Bold, spacing = 1f)
+            Txt(tr(lang, stepKey(vm.loadingStep)), 12, Cyan, FontWeight.Bold, spacing = 1f)
             Spacer(Modifier.height(16.dp))
             LoadStepsGrid(vm.loadingStep, lang, Modifier.widthIn(max = 320.dp))
         }
@@ -139,13 +139,13 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
         val s: Session
         if (mode == "xtream") {
             if (server.isBlank() || user.isBlank() || pass.isBlank()) {
-                                localError = tr(lang, "err_fill_xtream")
+                localError = tr(lang, "err_fill_xtream")
                 return
             }
             s = Session("xtream", normalizeServer(server), user.trim(), pass.trim())
         } else {
             if (m3u.isBlank()) {
-                                localError = tr(lang, "err_fill_m3u")
+                localError = tr(lang, "err_fill_m3u")
                 return
             }
             s = Session("m3u", m3uUrl = m3u.trim())
@@ -214,21 +214,25 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .heightIn(min = 52.dp)
                         .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
-                        .tvClick(btnShape) { if (!vm.loading) submit() },
+                        .tvClick(btnShape) { if (!vm.loading) submit() }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (vm.loading) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(10.dp))
-                            Txt(tr(lang, stepKey(vm.loadingStep)), 13, Slate950, FontWeight.Black, spacing = 1f)
+                            Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
                         }
                     } else {
                         Txt(
                             if (mode == "xtream") tr(lang, "btn_connect") else tr(lang, "btn_loadm3u"),
-                            14, Slate950, FontWeight.Black, spacing = 1f
+                            13, Slate950, FontWeight.Black,
+                            modifier = Modifier.fillMaxWidth(),
+                            spacing = 0.5f,
+                            align = TextAlign.Center
                         )
                     }
                 }
