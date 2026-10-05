@@ -16,6 +16,11 @@ val APP_LANGUAGES = listOf(
     LangDef("ru", "Русский", "🇷🇺")
 )
 
+// App ki ab tak selected language — connection errors jaisi jagah jahan direct
+// Composable context nahi hota, wahan isi se translate hota hai.
+@Volatile
+var currentLang: String = "en"
+
 private val EN = mapOf(
     "tagline" to "Stream Anytime • Anywhere",
     "tab_xtream" to "Xtream Codes",
@@ -46,7 +51,17 @@ private val EN = mapOf(
     "loading_series" to "LOADING SERIES...",
     "connecting" to "CONNECTING...",
     "err_fill_xtream" to "Please fill Server URL, Username and Password",
-    "err_fill_m3u" to "Please paste the M3U link"
+    "err_fill_m3u" to "Please paste the M3U link",
+    "err_bad_response" to "Server sent an invalid response. Please check the Xtream API.",
+    "err_wrong_credentials" to "Incorrect username or password",
+    "err_account_status" to "Account is {status}",
+    "err_invalid_m3u" to "This is not a valid M3U playlist",
+    "err_no_content" to "No channels or movies found on this account",
+    "err_no_server" to "Server not found. Check the URL and your internet.",
+    "err_timeout" to "Server did not respond in time (timeout).",
+    "err_ssl" to "SSL/HTTPS issue. Try http:// instead.",
+    "err_bad_url" to "Server URL is not valid.",
+    "err_connect_failed" to "Could not connect."
 )
 
 private val UR_ROMAN = mapOf(
@@ -79,7 +94,17 @@ private val UR_ROMAN = mapOf(
     "loading_series" to "SERIES LOAD HO RAHI HAIN...",
     "connecting" to "CONNECT HO RAHA HAI...",
     "err_fill_xtream" to "Server URL, username aur password teeno bharein",
-    "err_fill_m3u" to "M3U link paste karein"
+    "err_fill_m3u" to "M3U link paste karein",
+    "err_bad_response" to "Server ne sahi jawab nahi diya. Xtream API check karein.",
+    "err_wrong_credentials" to "Username ya password ghalat hai",
+    "err_account_status" to "Account {status} hai",
+    "err_invalid_m3u" to "Ye valid M3U playlist nahi hai",
+    "err_no_content" to "Is account me koi channel ya movie nahi mili",
+    "err_no_server" to "Server nahi mil raha. URL aur internet check karein.",
+    "err_timeout" to "Server ne waqt par jawab nahi diya (timeout).",
+    "err_ssl" to "SSL/HTTPS ka masla hai. http:// try karein.",
+    "err_bad_url" to "Server URL sahi nahi hai.",
+    "err_connect_failed" to "Connect nahi ho saka."
 )
 
 private val UR = mapOf(
@@ -112,7 +137,17 @@ private val UR = mapOf(
     "loading_series" to "سیریز لوڈ ہو رہی ہیں...",
     "connecting" to "کنیکٹ ہو رہا ہے...",
     "err_fill_xtream" to "سرور یو آر ایل، یوزر نیم اور پاسورڈ تینوں بھریں",
-    "err_fill_m3u" to "ایم تھری یو لنک پیسٹ کریں"
+    "err_fill_m3u" to "ایم تھری یو لنک پیسٹ کریں",
+    "err_bad_response" to "سرور نے درست جواب نہیں دیا۔ Xtream API چیک کریں۔",
+    "err_wrong_credentials" to "یوزر نیم یا پاسورڈ غلط ہے",
+    "err_account_status" to "اکاؤنٹ {status} ہے",
+    "err_invalid_m3u" to "یہ درست M3U پلے لسٹ نہیں ہے",
+    "err_no_content" to "اس اکاؤنٹ میں کوئی چینل یا مووی نہیں ملی",
+    "err_no_server" to "سرور نہیں مل رہا۔ یو آر ایل اور انٹرنیٹ چیک کریں۔",
+    "err_timeout" to "سرور نے وقت پر جواب نہیں دیا (ٹائم آؤٹ)۔",
+    "err_ssl" to "SSL/HTTPS کا مسئلہ ہے۔ http:// آزمائیں۔",
+    "err_bad_url" to "سرور یو آر ایل درست نہیں ہے۔",
+    "err_connect_failed" to "کنیکٹ نہیں ہو سکا۔"
 )
 
 private val AR = mapOf(
@@ -145,7 +180,17 @@ private val AR = mapOf(
     "loading_series" to "جارٍ تحميل المسلسلات...",
     "connecting" to "جارٍ الاتصال...",
     "err_fill_xtream" to "يرجى ملء رابط الخادم واسم المستخدم وكلمة المرور",
-    "err_fill_m3u" to "يرجى لصق رابط M3U"
+    "err_fill_m3u" to "يرجى لصق رابط M3U",
+    "err_bad_response" to "استجابة غير صالحة من الخادم. يرجى التحقق من Xtream API.",
+    "err_wrong_credentials" to "اسم المستخدم أو كلمة المرور غير صحيحة",
+    "err_account_status" to "الحساب {status}",
+    "err_invalid_m3u" to "هذه ليست قائمة M3U صالحة",
+    "err_no_content" to "لم يتم العثور على قنوات أو أفلام في هذا الحساب",
+    "err_no_server" to "الخادم غير موجود. تحقق من الرابط والإنترنت.",
+    "err_timeout" to "لم يستجب الخادم في الوقت المحدد.",
+    "err_ssl" to "مشكلة في SSL/HTTPS. جرّب http:// بدلاً منه.",
+    "err_bad_url" to "رابط الخادم غير صالح.",
+    "err_connect_failed" to "تعذر الاتصال."
 )
 
 private val PS = mapOf(
@@ -178,7 +223,17 @@ private val PS = mapOf(
     "loading_series" to "سیریزونه لوډ کیږي...",
     "connecting" to "نښلول کیږي...",
     "err_fill_xtream" to "د سرور یو آر ال، کارن نوم او پاسورډ ډک کړئ",
-    "err_fill_m3u" to "د M3U لینک پیسټ کړئ"
+    "err_fill_m3u" to "د M3U لینک پیسټ کړئ",
+    "err_bad_response" to "سرور سم ځواب ور نکړ. Xtream API وګورئ.",
+    "err_wrong_credentials" to "کارن نوم یا پاسورډ غلط دی",
+    "err_account_status" to "حساب {status} دی",
+    "err_invalid_m3u" to "دا سمه M3U لیست نه ده",
+    "err_no_content" to "په دې حساب کې هیڅ چینل یا فلم ونه موندل شو",
+    "err_no_server" to "سرور ونه موندل شو. یو آر ال او انټرنیټ وګورئ.",
+    "err_timeout" to "سرور په وخت ځواب ور نکړ.",
+    "err_ssl" to "د SSL/HTTPS ستونزه. http:// وکوښښئ.",
+    "err_bad_url" to "د سرور یو آر ال سم نه دی.",
+    "err_connect_failed" to "وصل نشو."
 )
 
 private val SD = mapOf(
@@ -211,7 +266,17 @@ private val SD = mapOf(
     "loading_series" to "سيريز لوڊ ٿي رهيون آهن...",
     "connecting" to "ڪنيڪٽ ٿي رهيو آهي...",
     "err_fill_xtream" to "سرور يو آر ايل، يوزرنيم ۽ پاسورڊ ٽيئي ڀريو",
-    "err_fill_m3u" to "M3U لنڪ پيسٽ ڪريو"
+    "err_fill_m3u" to "M3U لنڪ پيسٽ ڪريو",
+    "err_bad_response" to "سرور صحيح جواب نه ڏنو. Xtream API چيڪ ڪريو.",
+    "err_wrong_credentials" to "يوزرنيم يا پاسورڊ غلط آهي",
+    "err_account_status" to "اڪائونٽ {status} آهي",
+    "err_invalid_m3u" to "هي صحيح M3U پليلسٽ ناهي",
+    "err_no_content" to "هن اڪائونٽ ۾ ڪو چينل يا مووي نه ملي",
+    "err_no_server" to "سرور نه ملي رهيو آهي. يو آر ايل ۽ انٽرنيٽ چيڪ ڪريو.",
+    "err_timeout" to "سرور وقت تي جواب نه ڏنو.",
+    "err_ssl" to "SSL/HTTPS جو مسئلو آهي. http:// آزمايو.",
+    "err_bad_url" to "سرور يو آر ايل صحيح ناهي.",
+    "err_connect_failed" to "ڪنيڪٽ نه ٿي سگھيو."
 )
 
 private val ES = mapOf(
@@ -244,7 +309,17 @@ private val ES = mapOf(
     "loading_series" to "CARGANDO SERIES...",
     "connecting" to "CONECTANDO...",
     "err_fill_xtream" to "Completa la URL del servidor, usuario y contraseña",
-    "err_fill_m3u" to "Pega el enlace M3U"
+    "err_fill_m3u" to "Pega el enlace M3U",
+    "err_bad_response" to "El servidor envió una respuesta inválida. Verifica la API Xtream.",
+    "err_wrong_credentials" to "Usuario o contraseña incorrectos",
+    "err_account_status" to "La cuenta está {status}",
+    "err_invalid_m3u" to "Esta no es una lista M3U válida",
+    "err_no_content" to "No se encontraron canales ni películas en esta cuenta",
+    "err_no_server" to "Servidor no encontrado. Verifica la URL e internet.",
+    "err_timeout" to "El servidor no respondió a tiempo.",
+    "err_ssl" to "Problema de SSL/HTTPS. Prueba con http://.",
+    "err_bad_url" to "La URL del servidor no es válida.",
+    "err_connect_failed" to "No se pudo conectar."
 )
 
 private val FR = mapOf(
@@ -277,7 +352,17 @@ private val FR = mapOf(
     "loading_series" to "CHARGEMENT DES SÉRIES...",
     "connecting" to "CONNEXION...",
     "err_fill_xtream" to "Veuillez remplir l'URL du serveur, le nom d'utilisateur et le mot de passe",
-    "err_fill_m3u" to "Veuillez coller le lien M3U"
+    "err_fill_m3u" to "Veuillez coller le lien M3U",
+    "err_bad_response" to "Le serveur a renvoyé une réponse invalide. Vérifiez l'API Xtream.",
+    "err_wrong_credentials" to "Nom d'utilisateur ou mot de passe incorrect",
+    "err_account_status" to "Le compte est {status}",
+    "err_invalid_m3u" to "Ce n'est pas une playlist M3U valide",
+    "err_no_content" to "Aucune chaîne ni film trouvé sur ce compte",
+    "err_no_server" to "Serveur introuvable. Vérifiez l'URL et votre connexion.",
+    "err_timeout" to "Le serveur n'a pas répondu à temps.",
+    "err_ssl" to "Problème SSL/HTTPS. Essayez http:// à la place.",
+    "err_bad_url" to "L'URL du serveur n'est pas valide.",
+    "err_connect_failed" to "Connexion impossible."
 )
 
 private val HI = mapOf(
@@ -310,7 +395,17 @@ private val HI = mapOf(
     "loading_series" to "सीरीज़ लोड हो रही हैं...",
     "connecting" to "कनेक्ट हो रहा है...",
     "err_fill_xtream" to "सर्वर यूआरएल, यूज़रनेम और पासवर्ड तीनों भरें",
-    "err_fill_m3u" to "M3U लिंक पेस्ट करें"
+    "err_fill_m3u" to "M3U लिंक पेस्ट करें",
+    "err_bad_response" to "सर्वर से गलत जवाब मिला। Xtream API जांचें।",
+    "err_wrong_credentials" to "यूज़रनेम या पासवर्ड गलत है",
+    "err_account_status" to "खाता {status} है",
+    "err_invalid_m3u" to "यह मान्य M3U प्लेलिस्ट नहीं है",
+    "err_no_content" to "इस खाते में कोई चैनल या मूवी नहीं मिली",
+    "err_no_server" to "सर्वर नहीं मिला। यूआरएल और इंटरनेट जांचें।",
+    "err_timeout" to "सर्वर ने समय पर जवाब नहीं दिया।",
+    "err_ssl" to "SSL/HTTPS समस्या है। http:// आज़माएं।",
+    "err_bad_url" to "सर्वर यूआरएल सही नहीं है।",
+    "err_connect_failed" to "कनेक्ट नहीं हो सका।"
 )
 
 private val ZH = mapOf(
@@ -343,7 +438,17 @@ private val ZH = mapOf(
     "loading_series" to "正在加载剧集...",
     "connecting" to "正在连接...",
     "err_fill_xtream" to "请填写服务器地址、用户名和密码",
-    "err_fill_m3u" to "请粘贴 M3U 链接"
+    "err_fill_m3u" to "请粘贴 M3U 链接",
+    "err_bad_response" to "服务器返回了无效响应。请检查 Xtream API。",
+    "err_wrong_credentials" to "用户名或密码错误",
+    "err_account_status" to "账户状态：{status}",
+    "err_invalid_m3u" to "这不是有效的 M3U 播放列表",
+    "err_no_content" to "此账户未找到频道或电影",
+    "err_no_server" to "找不到服务器。请检查地址和网络。",
+    "err_timeout" to "服务器响应超时。",
+    "err_ssl" to "SSL/HTTPS 问题，请尝试使用 http://。",
+    "err_bad_url" to "服务器地址无效。",
+    "err_connect_failed" to "无法连接。"
 )
 
 private val RU = mapOf(
@@ -376,7 +481,17 @@ private val RU = mapOf(
     "loading_series" to "ЗАГРУЗКА СЕРИАЛОВ...",
     "connecting" to "ПОДКЛЮЧЕНИЕ...",
     "err_fill_xtream" to "Заполните URL сервера, имя пользователя и пароль",
-    "err_fill_m3u" to "Вставьте ссылку M3U"
+    "err_fill_m3u" to "Вставьте ссылку M3U",
+    "err_bad_response" to "Сервер вернул неверный ответ. Проверьте Xtream API.",
+    "err_wrong_credentials" to "Неверное имя пользователя или пароль",
+    "err_account_status" to "Статус аккаунта: {status}",
+    "err_invalid_m3u" to "Это не действительный плейлист M3U",
+    "err_no_content" to "На этом аккаунте не найдено каналов или фильмов",
+    "err_no_server" to "Сервер не найден. Проверьте URL и интернет.",
+    "err_timeout" to "Сервер не ответил вовремя.",
+    "err_ssl" to "Проблема с SSL/HTTPS. Попробуйте http://.",
+    "err_bad_url" to "Неверный URL сервера.",
+    "err_connect_failed" to "Не удалось подключиться."
 )
 
 private val ALL_LANGS: Map<String, Map<String, String>> = mapOf(
