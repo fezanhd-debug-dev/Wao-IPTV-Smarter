@@ -93,24 +93,24 @@ class XtreamApi(private val server: String, private val user: String, private va
     private fun base() = "$server/player_api.php?username=${enc(user)}&password=${enc(pass)}"
     private fun url(action: String, extra: String = "") = "${base()}&action=$action$extra"
 
-    fun authenticate(): AccountInfo {
+        fun authenticate(): AccountInfo {
         val root: JsonElement = try {
             JsonParser.parseString(httpGet(base()))
         } catch (e: Exception) {
             if (e is RuntimeException && e.message?.startsWith("Server error") == true) throw e
-            throw RuntimeException("Server se galat jawab aaya. Xtream API check karein.")
+            throw RuntimeException(tr(currentLang, "err_bad_response"))
         }
-        if (!root.isJsonObject) throw RuntimeException("Server ne sahi jawab nahi diya")
+        if (!root.isJsonObject) throw RuntimeException(tr(currentLang, "err_bad_response"))
         val ui = root.asJsonObject.get("user_info")
-        if (ui == null || !ui.isJsonObject) throw RuntimeException("Username ya password ghalat hai")
+        if (ui == null || !ui.isJsonObject) throw RuntimeException(tr(currentLang, "err_wrong_credentials"))
         val o = ui.asJsonObject
         fun f(k: String): String {
             val e = o.get(k)
             return if (e == null || e.isJsonNull || !e.isJsonPrimitive) "" else e.asString
         }
-        if (f("auth") == "0") throw RuntimeException("Username ya password ghalat hai")
+        if (f("auth") == "0") throw RuntimeException(tr(currentLang, "err_wrong_credentials"))
         val status = f("status")
-        if (status.isNotEmpty() && !status.equals("Active", true)) throw RuntimeException("Account $status hai")
+        if (status.isNotEmpty() && !status.equals("Active", true)) throw RuntimeException(tr(currentLang, "err_account_status").replace("{status}", status))
         return AccountInfo(
             username = f("username"),
             status = status.ifBlank { "Active" },
