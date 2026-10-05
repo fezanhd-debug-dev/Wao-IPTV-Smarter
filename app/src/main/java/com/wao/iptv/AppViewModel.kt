@@ -19,6 +19,8 @@ import java.net.UnknownHostException
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
 
+    init { currentLang = store.loadSettings().lang }
+
     var session by mutableStateOf<Session?>(store.loadSession())
     var loading by mutableStateOf(false)
     var loadingStep by mutableStateOf(0) // 0=idle/connecting, 1=live, 2=movies, 3=series
@@ -78,6 +80,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSettings(s: AppSettings) {
         settings = s
+        currentLang = s.lang
         store.saveSettings(s)
     }
 
@@ -204,7 +207,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 if (s.type == "m3u") {
                     val text = withContext(Dispatchers.IO) { httpGet(s.m3uUrl) }
-                    if (!text.contains("#EXTINF")) throw RuntimeException("Ye valid M3U playlist nahi hai")
+                    if (!text.contains("#EXTINF")) throw RuntimeException(tr(currentLang, "err_invalid_m3u"))
                     loadingStep = 1
                     val r = withContext(Dispatchers.Default) { parseM3u(text) }
                     liveCats = r.liveCats
@@ -249,7 +252,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     }
 
                     if (channels.isEmpty() && movies.isEmpty() && seriesList.isEmpty()) {
-                        throw (liveErr ?: RuntimeException("Is account me koi channel ya movie nahi mili"))
+                        throw (liveErr ?: RuntimeException(tr(currentLang, "err_no_content")))
                     }
                     account = acc
                 }
@@ -272,11 +275,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun friendly(e: Exception): String = when (e) {
-        is UnknownHostException -> "Server nahi mil raha. URL aur internet check karein."
-        is SocketTimeoutException -> "Server ne waqt par jawab nahi diya (timeout)."
-        is javax.net.ssl.SSLException -> "SSL/HTTPS ka masla hai. http:// try karein."
-        is IllegalArgumentException -> "Server URL sahi nahi hai."
-        else -> e.message?.takeIf { it.isNotBlank() } ?: "Connect nahi ho saka."
+        is UnknownHostException -> tr(currentLang, "err_no_server")
+        is SocketTimeoutException -> tr(currentLang, "err_timeout")
+        is javax.net.ssl.SSLException -> tr(currentLang, "err_ssl")
+        is IllegalArgumentException -> tr(currentLang, "err_bad_url")
+        else -> e.message?.takeIf { it.isNotBlank() } ?: tr(currentLang, "err_connect_failed")
     }
 
     fun logout() {
