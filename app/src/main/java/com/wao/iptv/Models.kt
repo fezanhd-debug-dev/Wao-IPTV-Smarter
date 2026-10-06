@@ -63,7 +63,11 @@ data class PlayItem(
     val isLive: Boolean,
     val poster: String = "",
     val historyKey: String = "",
-    val startPosition: Long = 0L
+    val startPosition: Long = 0L,
+    val channelId: String = "",
+    val movieId: String = "",
+    val seriesId: String = "",
+    val episodeId: String = ""
 )
 
 data class HistoryItem(
