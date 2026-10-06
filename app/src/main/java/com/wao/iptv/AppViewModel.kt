@@ -155,7 +155,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // Days until expiry; null if unknown/not applicable
     fun daysUntilExpiry(): Int? {
         val exp = account.expDate
         if (exp <= 0) return null
@@ -325,7 +324,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             subtitle = cur?.title ?: "Live Channel",
             isLive = true,
             poster = ch.icon,
-            historyKey = "live:${ch.id}:${ch.num}"
+            historyKey = "live:${ch.id}:${ch.num}",
+            channelId = ch.id
         )
     }
 
@@ -337,7 +337,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             subtitle = listOf(m.year, "Movie").filter { it.isNotBlank() }.joinToString(" • "),
             isLive = false,
             poster = m.poster,
-            historyKey = "movie:${m.id}"
+            historyKey = "movie:${m.id}",
+            movieId = m.id
         )
     }
 
@@ -349,7 +350,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             subtitle = ep.title,
             isLive = false,
             poster = series.poster,
-            historyKey = "ep:${ep.id}"
+            historyKey = "ep:${ep.id}",
+            seriesId = series.id,
+            episodeId = ep.id
         )
     }
 
@@ -374,5 +377,91 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun recordHistory(h: HistoryItem) {
         history = (listOf(h) + history.filter { it.key != h.key }).take(10)
         store.saveHistory(history)
+    }
+
+    // ---- Player: Next / Previous support (live channel, movie, or series episode) ----
+
+    fun canGoNext(): Boolean {
+        val cur = nowPlaying ?: return false
+        return when {
+            cur.isLive -> visibleChannels().size > 1
+            cur.seriesId.isNotBlank() -> {
+                val idx = episodes.indexOfFirst { it.id == cur.episodeId }
+                idx != -1 && idx < episodes.size - 1
+            }
+            cur.movieId.isNotBlank() -> {
+                val idx = movies.indexOfFirst { it.id == cur.movieId }
+                idx != -1 && idx < movies.size - 1
+            }
+            else -> false
+        }
+    }
+
+    fun canGoPrev(): Boolean {
+        val cur = nowPlaying ?: return false
+        return when {
+            cur.isLive -> visibleChannels().size > 1
+            cur.seriesId.isNotBlank() -> {
+                val idx = episodes.indexOfFirst { it.id == cur.episodeId }
+                idx > 0
+            }
+            cur.movieId.isNotBlank() -> {
+                val idx = movies.indexOfFirst { it.id == cur.movieId }
+                idx > 0
+            }
+            else -> false
+        }
+    }
+
+    fun goNext() {
+        val cur = nowPlaying ?: return
+        when {
+            cur.isLive -> {
+                val list = visibleChannels()
+                if (list.isEmpty()) return
+                val idx = list.indexOfFirst { it.id == cur.channelId }
+                val next = if (idx == -1) list.first() else list[(idx + 1) % list.size]
+                playChannel(next)
+            }
+            cur.seriesId.isNotBlank() -> {
+                val series = selectedSeries ?: return
+                if (series.id != cur.seriesId) return
+                val idx = episodes.indexOfFirst { it.id == cur.episodeId }
+                val next = episodes.getOrNull(idx + 1) ?: return
+                playEpisode(series, next)
+            }
+            cur.movieId.isNotBlank() -> {
+                val idx = movies.indexOfFirst { it.id == cur.movieId }
+                val next = movies.getOrNull(idx + 1) ?: return
+                playMovie(next)
+            }
+        }
+    }
+
+    fun goPrev() {
+        val cur = nowPlaying ?: return
+        when {
+            cur.isLive -> {
+                val list = visibleChannels()
+                if (list.isEmpty()) return
+                val idx = list.indexOfFirst { it.id == cur.channelId }
+                val prev = if (idx == -1) list.first() else list[(idx - 1 + list.size) % list.size]
+                playChannel(prev)
+            }
+            cur.seriesId.isNotBlank() -> {
+                val series = selectedSeries ?: return
+                if (series.id != cur.seriesId) return
+                val idx = episodes.indexOfFirst { it.id == cur.episodeId }
+                if (idx <= 0) return
+                val prev = episodes.getOrNull(idx - 1) ?: return
+                playEpisode(series, prev)
+            }
+            cur.movieId.isNotBlank() -> {
+                val idx = movies.indexOfFirst { it.id == cur.movieId }
+                if (idx <= 0) return
+                val prev = movies.getOrNull(idx - 1) ?: return
+                playMovie(prev)
+            }
+        }
     }
 }
