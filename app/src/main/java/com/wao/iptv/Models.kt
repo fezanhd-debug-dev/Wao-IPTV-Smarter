@@ -108,3 +108,13 @@ data class ContentSnapshot(
     val movieCount: Int = 0,
     val seriesCount: Int = 0
 )
+
+data class CachedContent(
+    val liveCats: List<Category> = emptyList(),
+    val channels: List<Channel> = emptyList(),
+    val movieCats: List<Category> = emptyList(),
+    val movies: List<VodItem> = emptyList(),
+    val seriesCats: List<Category> = emptyList(),
+    val seriesList: List<VodItem> = emptyList(),
+    val account: AccountInfo = AccountInfo()
+)
