@@ -61,7 +61,25 @@ private val EN = mapOf(
     "err_timeout" to "Server did not respond in time (timeout).",
     "err_ssl" to "SSL/HTTPS issue. Try http:// instead.",
     "err_bad_url" to "Server URL is not valid.",
-    "err_connect_failed" to "Could not connect."
+    "err_connect_failed" to "Could not connect.",
+    "err_account_expired" to "Your account has expired",
+    "err_account_expires_today" to "Your account expires today",
+    "err_account_expires_tomorrow" to "Your account expires tomorrow",
+    "err_account_expires_days" to "Your account expires in {days} days",
+    "stream_issue" to "Stream playback issue:",
+    "retry" to "Retry",
+    "continue_watching" to "CONTINUE WATCHING",
+    "see_all" to "See All",
+    "no_history" to "You haven't watched anything yet. Play something and it will show up here.",
+    "live_now" to "LIVE NOW",
+    "watch_stream" to "Watch Stream",
+    "premium_uhd" to "PREMIUM UHD",
+    "home_movies" to "Movies",
+    "home_series" to "Series",
+    "new_item_live" to "{n} new channels",
+    "new_item_movies" to "{n} new movies",
+    "new_item_series" to "{n} new series",
+    "new_content_suffix" to "added"
 )
 
 private val UR_ROMAN = mapOf(
@@ -104,7 +122,25 @@ private val UR_ROMAN = mapOf(
     "err_timeout" to "Server ne waqt par jawab nahi diya (timeout).",
     "err_ssl" to "SSL/HTTPS ka masla hai. http:// try karein.",
     "err_bad_url" to "Server URL sahi nahi hai.",
-    "err_connect_failed" to "Connect nahi ho saka."
+    "err_connect_failed" to "Connect nahi ho saka.",
+    "err_account_expired" to "Aapka account expire ho chuka hai",
+    "err_account_expires_today" to "Aapka account aaj expire ho raha hai",
+    "err_account_expires_tomorrow" to "Aapka account kal expire ho raha hai",
+    "err_account_expires_days" to "Aapka account {days} din me expire ho raha hai",
+    "stream_issue" to "Stream chalane me masla hua:",
+    "retry" to "Dobara Try Karein",
+    "continue_watching" to "CONTINUE WATCHING",
+    "see_all" to "See All",
+    "no_history" to "Abhi tak kuch nahi dekha. Kuch chalayein, yahan aa jayega.",
+    "live_now" to "LIVE NOW",
+    "watch_stream" to "Watch Stream",
+    "premium_uhd" to "PREMIUM UHD",
+    "home_movies" to "Movies",
+    "home_series" to "Series",
+    "new_item_live" to "{n} naye channels",
+    "new_item_movies" to "{n} nayi movies",
+    "new_item_series" to "{n} nayi series",
+    "new_content_suffix" to "add hui hain"
 )
 
 private val UR = mapOf(
@@ -147,7 +183,25 @@ private val UR = mapOf(
     "err_timeout" to "سرور نے وقت پر جواب نہیں دیا (ٹائم آؤٹ)۔",
     "err_ssl" to "SSL/HTTPS کا مسئلہ ہے۔ http:// آزمائیں۔",
     "err_bad_url" to "سرور یو آر ایل درست نہیں ہے۔",
-    "err_connect_failed" to "کنیکٹ نہیں ہو سکا۔"
+    "err_connect_failed" to "کنیکٹ نہیں ہو سکا۔",
+    "err_account_expired" to "آپ کا اکاؤنٹ ختم ہو چکا ہے",
+    "err_account_expires_today" to "آپ کا اکاؤنٹ آج ختم ہو رہا ہے",
+    "err_account_expires_tomorrow" to "آپ کا اکاؤنٹ کل ختم ہو رہا ہے",
+    "err_account_expires_days" to "آپ کا اکاؤنٹ {days} دن میں ختم ہو رہا ہے",
+    "stream_issue" to "سٹریم چلانے میں مسئلہ ہوا:",
+    "retry" to "دوبارہ کوشش کریں",
+    "continue_watching" to "دیکھنا جاری رکھیں",
+    "see_all" to "سب دیکھیں",
+    "no_history" to "ابھی تک کچھ نہیں دیکھا۔ کچھ چلائیں، یہاں آ جائے گا۔",
+    "live_now" to "ابھی لائیو",
+    "watch_stream" to "اسٹریم دیکھیں",
+    "premium_uhd" to "پریمیم یو ایچ ڈی",
+    "home_movies" to "موویز",
+    "home_series" to "سیریز",
+    "new_item_live" to "{n} نئے چینلز",
+    "new_item_movies" to "{n} نئی موویز",
+    "new_item_series" to "{n} نئی سیریز",
+    "new_content_suffix" to "شامل ہوئیں"
 )
 
 private val AR = mapOf(
@@ -190,7 +244,25 @@ private val AR = mapOf(
     "err_timeout" to "لم يستجب الخادم في الوقت المحدد.",
     "err_ssl" to "مشكلة في SSL/HTTPS. جرّب http:// بدلاً منه.",
     "err_bad_url" to "رابط الخادم غير صالح.",
-    "err_connect_failed" to "تعذر الاتصال."
+    "err_connect_failed" to "تعذر الاتصال.",
+    "err_account_expired" to "انتهت صلاحية حسابك",
+    "err_account_expires_today" to "ينتهي حسابك اليوم",
+    "err_account_expires_tomorrow" to "ينتهي حسابك غدًا",
+    "err_account_expires_days" to "ينتهي حسابك خلال {days} أيام",
+    "stream_issue" to "مشكلة في تشغيل البث:",
+    "retry" to "إعادة المحاولة",
+    "continue_watching" to "متابعة المشاهدة",
+    "see_all" to "عرض الكل",
+    "no_history" to "لم تشاهد شيئًا بعد. شغّل شيئًا وسيظهر هنا.",
+    "live_now" to "مباشر الآن",
+    "watch_stream" to "مشاهدة البث",
+    "premium_uhd" to "بريميوم UHD",
+    "home_movies" to "أفلام",
+    "home_series" to "مسلسلات",
+    "new_item_live" to "{n} قناة جديدة",
+    "new_item_movies" to "{n} فيلم جديد",
+    "new_item_series" to "{n} مسلسل جديد",
+    "new_content_suffix" to "تمت إضافتها"
 )
 
 private val PS = mapOf(
@@ -233,7 +305,25 @@ private val PS = mapOf(
     "err_timeout" to "سرور په وخت ځواب ور نکړ.",
     "err_ssl" to "د SSL/HTTPS ستونزه. http:// وکوښښئ.",
     "err_bad_url" to "د سرور یو آر ال سم نه دی.",
-    "err_connect_failed" to "وصل نشو."
+    "err_connect_failed" to "وصل نشو.",
+    "err_account_expired" to "ستاسو حساب پای ته رسیدلی",
+    "err_account_expires_today" to "ستاسو حساب نن پای ته رسیږي",
+    "err_account_expires_tomorrow" to "ستاسو حساب سبا پای ته رسیږي",
+    "err_account_expires_days" to "ستاسو حساب په {days} ورځو کې پای ته رسیږي",
+    "stream_issue" to "د سټریم په چلولو کې ستونزه:",
+    "retry" to "بیا هڅه وکړئ",
+    "continue_watching" to "کتل ته دوام ورکړئ",
+    "see_all" to "ټول وګورئ",
+    "no_history" to "تر اوسه مو هیڅ نه دي کتلي. یو څه وغځوئ، دلته به راشي.",
+    "live_now" to "اوس ژوندی",
+    "watch_stream" to "سټریم وګورئ",
+    "premium_uhd" to "پریمیم UHD",
+    "home_movies" to "فلمونه",
+    "home_series" to "سیریزونه",
+    "new_item_live" to "{n} نوي چینلونه",
+    "new_item_movies" to "{n} نوي فلمونه",
+    "new_item_series" to "{n} نوي سیریزونه",
+    "new_content_suffix" to "اضافه شول"
 )
 
 private val SD = mapOf(
@@ -276,7 +366,25 @@ private val SD = mapOf(
     "err_timeout" to "سرور وقت تي جواب نه ڏنو.",
     "err_ssl" to "SSL/HTTPS جو مسئلو آهي. http:// آزمايو.",
     "err_bad_url" to "سرور يو آر ايل صحيح ناهي.",
-    "err_connect_failed" to "ڪنيڪٽ نه ٿي سگھيو."
+    "err_connect_failed" to "ڪنيڪٽ نه ٿي سگھيو.",
+    "err_account_expired" to "توهان جو اڪائونٽ ختم ٿي ويو آهي",
+    "err_account_expires_today" to "توهان جو اڪائونٽ اڄ ختم ٿي رهيو آهي",
+    "err_account_expires_tomorrow" to "توهان جو اڪائونٽ سڀاڻي ختم ٿي رهيو آهي",
+    "err_account_expires_days" to "توهان جو اڪائونٽ {days} ڏينهن ۾ ختم ٿي رهيو آهي",
+    "stream_issue" to "سٽريم هلائڻ ۾ مسئلو ٿيو:",
+    "retry" to "ٻيهر ڪوشش ڪريو",
+    "continue_watching" to "ڏسڻ جاري رکو",
+    "see_all" to "سڀ ڏسو",
+    "no_history" to "اڃا تائين ڪجهه نه ڏٺو. ڪجهه هلايو، هتي اچي ويندو.",
+    "live_now" to "هاڻي لائيو",
+    "watch_stream" to "سٽريم ڏسو",
+    "premium_uhd" to "پريميئم UHD",
+    "home_movies" to "موويز",
+    "home_series" to "سيريز",
+    "new_item_live" to "{n} نوان چينل",
+    "new_item_movies" to "{n} نيون موويز",
+    "new_item_series" to "{n} نيون سيريز",
+    "new_content_suffix" to "شامل ٿيون"
 )
 
 private val ES = mapOf(
@@ -319,7 +427,25 @@ private val ES = mapOf(
     "err_timeout" to "El servidor no respondió a tiempo.",
     "err_ssl" to "Problema de SSL/HTTPS. Prueba con http://.",
     "err_bad_url" to "La URL del servidor no es válida.",
-    "err_connect_failed" to "No se pudo conectar."
+    "err_connect_failed" to "No se pudo conectar.",
+    "err_account_expired" to "Tu cuenta ha expirado",
+    "err_account_expires_today" to "Tu cuenta expira hoy",
+    "err_account_expires_tomorrow" to "Tu cuenta expira mañana",
+    "err_account_expires_days" to "Tu cuenta expira en {days} días",
+    "stream_issue" to "Problema al reproducir la transmisión:",
+    "retry" to "Reintentar",
+    "continue_watching" to "SEGUIR VIENDO",
+    "see_all" to "Ver todo",
+    "no_history" to "Aún no has visto nada. Reproduce algo y aparecerá aquí.",
+    "live_now" to "EN VIVO AHORA",
+    "watch_stream" to "Ver transmisión",
+    "premium_uhd" to "PREMIUM UHD",
+    "home_movies" to "Películas",
+    "home_series" to "Series",
+    "new_item_live" to "{n} canales nuevos",
+    "new_item_movies" to "{n} películas nuevas",
+    "new_item_series" to "{n} series nuevas",
+    "new_content_suffix" to "añadidos"
 )
 
 private val FR = mapOf(
@@ -362,7 +488,25 @@ private val FR = mapOf(
     "err_timeout" to "Le serveur n'a pas répondu à temps.",
     "err_ssl" to "Problème SSL/HTTPS. Essayez http:// à la place.",
     "err_bad_url" to "L'URL du serveur n'est pas valide.",
-    "err_connect_failed" to "Connexion impossible."
+    "err_connect_failed" to "Connexion impossible.",
+    "err_account_expired" to "Votre compte a expiré",
+    "err_account_expires_today" to "Votre compte expire aujourd'hui",
+    "err_account_expires_tomorrow" to "Votre compte expire demain",
+    "err_account_expires_days" to "Votre compte expire dans {days} jours",
+    "stream_issue" to "Problème de lecture du flux :",
+    "retry" to "Réessayer",
+    "continue_watching" to "CONTINUER À REGARDER",
+    "see_all" to "Tout voir",
+    "no_history" to "Vous n'avez encore rien regardé. Lancez quelque chose, ça apparaîtra ici.",
+    "live_now" to "EN DIRECT",
+    "watch_stream" to "Regarder",
+    "premium_uhd" to "PREMIUM UHD",
+    "home_movies" to "Films",
+    "home_series" to "Séries",
+    "new_item_live" to "{n} nouvelles chaînes",
+    "new_item_movies" to "{n} nouveaux films",
+    "new_item_series" to "{n} nouvelles séries",
+    "new_content_suffix" to "ajoutés"
 )
 
 private val HI = mapOf(
@@ -405,7 +549,25 @@ private val HI = mapOf(
     "err_timeout" to "सर्वर ने समय पर जवाब नहीं दिया।",
     "err_ssl" to "SSL/HTTPS समस्या है। http:// आज़माएं।",
     "err_bad_url" to "सर्वर यूआरएल सही नहीं है।",
-    "err_connect_failed" to "कनेक्ट नहीं हो सका।"
+    "err_connect_failed" to "कनेक्ट नहीं हो सका।",
+    "err_account_expired" to "आपका खाता समाप्त हो चुका है",
+    "err_account_expires_today" to "आपका खाता आज समाप्त हो रहा है",
+    "err_account_expires_tomorrow" to "आपका खाता कल समाप्त हो रहा है",
+    "err_account_expires_days" to "आपका खाता {days} दिनों में समाप्त हो रहा है",
+    "stream_issue" to "स्ट्रीम चलाने में समस्या हुई:",
+    "retry" to "फिर कोशिश करें",
+    "continue_watching" to "देखना जारी रखें",
+    "see_all" to "सभी देखें",
+    "no_history" to "अभी तक कुछ नहीं देखा। कुछ चलाएं, यहां दिखेगा।",
+    "live_now" to "अभी लाइव",
+    "watch_stream" to "स्ट्रीम देखें",
+    "premium_uhd" to "प्रीमियम UHD",
+    "home_movies" to "मूवीज़",
+    "home_series" to "सीरीज़",
+    "new_item_live" to "{n} नए चैनल",
+    "new_item_movies" to "{n} नई मूवीज़",
+    "new_item_series" to "{n} नई सीरीज़",
+    "new_content_suffix" to "जुड़ी हैं"
 )
 
 private val ZH = mapOf(
@@ -448,7 +610,25 @@ private val ZH = mapOf(
     "err_timeout" to "服务器响应超时。",
     "err_ssl" to "SSL/HTTPS 问题，请尝试使用 http://。",
     "err_bad_url" to "服务器地址无效。",
-    "err_connect_failed" to "无法连接。"
+    "err_connect_failed" to "无法连接。",
+    "err_account_expired" to "您的账户已过期",
+    "err_account_expires_today" to "您的账户今天到期",
+    "err_account_expires_tomorrow" to "您的账户明天到期",
+    "err_account_expires_days" to "您的账户将在 {days} 天后到期",
+    "stream_issue" to "播放出现问题：",
+    "retry" to "重试",
+    "continue_watching" to "继续观看",
+    "see_all" to "查看全部",
+    "no_history" to "您还没有观看任何内容，播放后会显示在这里。",
+    "live_now" to "正在直播",
+    "watch_stream" to "观看直播",
+    "premium_uhd" to "高级 UHD",
+    "home_movies" to "电影",
+    "home_series" to "剧集",
+    "new_item_live" to "{n} 个新频道",
+    "new_item_movies" to "{n} 部新电影",
+    "new_item_series" to "{n} 部新剧集",
+    "new_content_suffix" to "已添加"
 )
 
 private val RU = mapOf(
@@ -491,7 +671,25 @@ private val RU = mapOf(
     "err_timeout" to "Сервер не ответил вовремя.",
     "err_ssl" to "Проблема с SSL/HTTPS. Попробуйте http://.",
     "err_bad_url" to "Неверный URL сервера.",
-    "err_connect_failed" to "Не удалось подключиться."
+    "err_connect_failed" to "Не удалось подключиться.",
+    "err_account_expired" to "Срок действия вашего аккаунта истёк",
+    "err_account_expires_today" to "Срок действия вашего аккаунта истекает сегодня",
+    "err_account_expires_tomorrow" to "Срок действия вашего аккаунта истекает завтра",
+    "err_account_expires_days" to "Срок действия вашего аккаунта истекает через {days} дн.",
+    "stream_issue" to "Проблема воспроизведения потока:",
+    "retry" to "Повторить",
+    "continue_watching" to "ПРОДОЛЖИТЬ ПРОСМОТР",
+    "see_all" to "Смотреть все",
+    "no_history" to "Вы ещё ничего не смотрели. Запустите что-нибудь, и это появится здесь.",
+    "live_now" to "СЕЙЧАС В ЭФИРЕ",
+    "watch_stream" to "Смотреть",
+    "premium_uhd" to "PREMIUM UHD",
+    "home_movies" to "Фильмы",
+    "home_series" to "Сериалы",
+    "new_item_live" to "{n} новых каналов",
+    "new_item_movies" to "{n} новых фильмов",
+    "new_item_series" to "{n} новых сериалов",
+    "new_content_suffix" to "добавлено"
 )
 
 private val ALL_LANGS: Map<String, Map<String, String>> = mapOf(
