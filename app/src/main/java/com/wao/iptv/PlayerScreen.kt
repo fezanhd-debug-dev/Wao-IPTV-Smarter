@@ -1,6 +1,9 @@
 package com.wao.iptv
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.media.AudioManager
+import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,16 +20,36 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+
+private fun hideSystemBars(activity: Activity?) {
+    val window = activity?.window ?: return
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    val controller = WindowInsetsControllerCompat(window, window.decorView)
+    controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+}
+
+private fun showSystemBars(activity: Activity?) {
+    val window = activity?.window ?: return
+    WindowCompat.setDecorFitsSystemWindows(window, true)
+    val controller = WindowInsetsControllerCompat(window, window.decorView)
+    controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+}
 
 @Composable
 fun PlayerScreen(vm: AppViewModel, nav: NavController) {
@@ -51,10 +74,13 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
     var posMs by remember { mutableStateOf(0L) }
     var durMs by remember { mutableStateOf(0L) }
     var bufferedPct by remember { mutableStateOf(0) }
+    var isLandscape by remember { mutableStateOf(false) }
 
     var brightness by remember { mutableStateOf(activity?.window?.attributes?.screenBrightness?.takeIf { it in 0f..1f } ?: 0.6f) }
     var volume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVol) }
     var gestureLabel by remember { mutableStateOf<Pair<String, Int>?>(null) }
+
+    val focusRequester = remember { FocusRequester() }
 
     fun saveHistory() {
         if (durMs > 0 || item.isLive) {
@@ -64,6 +90,16 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
     }
 
+    // Enter/exit: fullscreen immersive mode + restore orientation on leave
+    DisposableEffect(Unit) {
+        hideSystemBars(activity)
+        onDispose {
+            showSystemBars(activity)
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    // Player listeners + release — set up once for the lifetime of this screen
     DisposableEffect(Unit) {
         fb.onFail = { e: PlaybackException -> errorMsg = "Stream chalane me masla hua: ${e.errorCodeName}" }
         val listener = object : Player.Listener {
@@ -75,13 +111,23 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
         player.addListener(fb)
         player.addListener(listener)
-        fb.play(item.url, item.startPosition)
         onDispose {
-            saveHistory()
             player.removeListener(fb)
             player.removeListener(listener)
             player.release()
         }
+    }
+
+    // Load media whenever item changes (covers initial load AND Next/Previous)
+    LaunchedEffect(item.url) {
+        posMs = 0L
+        durMs = 0L
+        errorMsg = null
+        fb.play(item.url, item.startPosition)
+    }
+
+    LaunchedEffect(Unit) {
+        runCatching { focusRequester.requestFocus() }
     }
 
     LaunchedEffect(Unit) {
@@ -107,10 +153,84 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
 
     BackHandler { saveHistory(); nav.popBackStack() }
 
+    fun toggleLandscape() {
+        isLandscape = !isLandscape
+        activity?.requestedOrientation = if (isLandscape)
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        else
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    }
+
+    fun togglePlayPause() {
+        player.playWhenReady = !player.playWhenReady
+        showControls = true
+    }
+
+    val canNext = vm.canGoNext()
+    val canPrev = vm.canGoPrev()
+
+    fun goNext() { saveHistory(); vm.goNext() }
+    fun goPrev() { saveHistory(); vm.goPrev() }
+
     Box(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.nativeKeyEvent.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_SPACE -> {
+                        togglePlayPause(); true
+                    }
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> { player.playWhenReady = true; showControls = true; true }
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> { player.playWhenReady = false; showControls = true; true }
+                    KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_CHANNEL_UP -> {
+                        if (canNext) goNext(); true
+                    }
+                    KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                        if (canPrev) goPrev(); true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (item.isLive) {
+                            if (canNext) goNext()
+                        } else {
+                            player.seekTo((player.currentPosition + 10000).coerceAtLeast(0))
+                            gestureLabel = "+10s" to 0
+                        }
+                        showControls = true
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (item.isLive) {
+                            if (canPrev) goPrev()
+                        } else {
+                            player.seekTo((player.currentPosition - 10000).coerceAtLeast(0))
+                            gestureLabel = "-10s" to 0
+                        }
+                        showControls = true
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_VOLUME_UP -> {
+                        volume = (volume + 0.1f).coerceIn(0f, 1f)
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (volume * maxVol).toInt(), 0)
+                        gestureLabel = "${(volume * 100).toInt()}%" to 2
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                        volume = (volume - 0.1f).coerceIn(0f, 1f)
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (volume * maxVol).toInt(), 0)
+                        gestureLabel = "${(volume * 100).toInt()}%" to 2
+                        true
+                    }
+                    KeyEvent.KEYCODE_BACK -> {
+                        saveHistory(); nav.popBackStack(); true
+                    }
+                    else -> false
+                }
+            }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { showControls = !showControls },
@@ -178,14 +298,14 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Box(
                             Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
                                 .clickable { saveHistory(); nav.popBackStack() },
                             contentAlignment = Alignment.Center
                         ) { Icon(Icons.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(16.dp)) }
                         Spacer(Modifier.width(10.dp))
-                        Column {
+                        Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (item.isLive) Pill("LIVE", Red, Color.White)
                                 Spacer(Modifier.width(6.dp))
@@ -194,35 +314,81 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                             Txt(item.subtitle, 11, Cyan, maxLines = 1)
                         }
                     }
-                    Row(
-                        Modifier.background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-                            .clickable {
-                                resizeMode = if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT)
-                                    AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.Fullscreen, null, tint = Cyan, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Txt(if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT) "Fit" else "Zoom", 11, Color.White, FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+                                .clickable { toggleLandscape() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (isLandscape) Icons.Filled.StayCurrentPortrait else Icons.Filled.ScreenRotation,
+                                null, tint = Cyan, modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Row(
+                            Modifier.background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    resizeMode = if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT)
+                                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Fullscreen, null, tint = Cyan, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Txt(if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT) "Fit" else "Zoom", 11, Color.White, FontWeight.SemiBold)
+                        }
                     }
                 }
 
-                Box(
-                    Modifier
-                        .align(Alignment.Center)
-                        .size(64.dp)
-                        .background(Cyan.copy(alpha = 0.2f), CircleShape)
-                        .border(1.dp, Cyan.copy(alpha = 0.4f), CircleShape)
-                        .clickable { player.playWhenReady = !player.playWhenReady }
-                        .padding(4.dp),
-                    contentAlignment = Alignment.Center
+                Row(
+                    Modifier.align(Alignment.Center),
+                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        null, tint = Cyan, modifier = Modifier.size(28.dp)
-                    )
+                    Box(
+                        Modifier
+                            .size(52.dp)
+                            .background(if (canPrev) Color(0x33FFFFFF) else Color(0x14FFFFFF), CircleShape)
+                            .then(if (canPrev) Modifier.clickable { goPrev() } else Modifier),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.SkipPrevious, null,
+                            tint = if (canPrev) Color.White else Slate700,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
+                    Box(
+                        Modifier
+                            .size(68.dp)
+                            .background(Cyan.copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, Cyan.copy(alpha = 0.4f), CircleShape)
+                            .clickable { togglePlayPause() }
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            null, tint = Cyan, modifier = Modifier.size(30.dp)
+                        )
+                    }
+
+                    Box(
+                        Modifier
+                            .size(52.dp)
+                            .background(if (canNext) Color(0x33FFFFFF) else Color(0x14FFFFFF), CircleShape)
+                            .then(if (canNext) Modifier.clickable { goNext() } else Modifier),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.SkipNext, null,
+                            tint = if (canNext) Color.White else Slate700,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
 
                 Column(
