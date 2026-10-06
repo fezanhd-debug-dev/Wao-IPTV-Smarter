@@ -96,8 +96,6 @@ private fun AlertBanner(
     bg: Color,
     border: Color,
     text: String,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Row(
@@ -111,14 +109,6 @@ private fun AlertBanner(
         Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         Txt(text, 12, Color.White, FontWeight.SemiBold, Modifier.weight(1f), maxLines = 3)
-        if (actionLabel != null && onAction != null) {
-            Spacer(Modifier.width(8.dp))
-            val shape = RoundedCornerShape(8.dp)
-            Txt(
-                actionLabel, 11, iconTint, FontWeight.Bold,
-                modifier = Modifier.tvClick(shape, onClick = onAction).padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
         Spacer(Modifier.width(4.dp))
         Box(Modifier.size(22.dp).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
             Icon(Icons.Filled.Close, null, tint = Slate400, modifier = Modifier.size(14.dp))
@@ -128,6 +118,7 @@ private fun AlertBanner(
 
 @Composable
 fun HomeScreen(vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
     val featured = remember(all) { all.firstOrNull { it.icon.isNotBlank() } ?: all.firstOrNull() }
     val catName = remember(vm.liveCats) { vm.liveCats.associate { it.id to it.name } }
@@ -154,7 +145,7 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Txt("Wao IPTV Smarter", 16, Color.White, FontWeight.Bold)
-                    Txt("PREMIUM UHD", 10, Cyan, FontWeight.SemiBold, spacing = 1f)
+                    Txt(tr(lang, "premium_uhd"), 10, Cyan, FontWeight.SemiBold, spacing = 1f)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -185,10 +176,10 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (showExpiry) {
                         val msg = when {
-                            daysLeft!! < 0 -> "Aapka account expire ho chuka hai"
-                            daysLeft == 0 -> "Aapka account aaj expire ho raha hai"
-                            daysLeft == 1 -> "Aapka account kal expire ho raha hai"
-                            else -> "Aapka account $daysLeft din me expire ho raha hai"
+                            daysLeft!! < 0 -> tr(lang, "err_account_expired")
+                            daysLeft == 0 -> tr(lang, "err_account_expires_today")
+                            daysLeft == 1 -> tr(lang, "err_account_expires_tomorrow")
+                            else -> tr(lang, "err_account_expires_days").replace("{days}", daysLeft.toString())
                         }
                         AlertBanner(
                             icon = Icons.Filled.WarningAmber,
@@ -235,10 +226,10 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                         )
                     )
                     Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
-                        Pill("🔴 LIVE NOW", Red, Color.White)
+                        Pill("🔴 ${tr(lang, "live_now")}", Red, Color.White)
                         Txt(featured.name, 20, Color.White, FontWeight.Black, Modifier.padding(top = 6.dp), maxLines = 2)
                         Txt(
-                            cur?.title ?: (catName[featured.categoryId] ?: "Live TV"),
+                            cur?.title ?: (catName[featured.categoryId] ?: tr(lang, "nav_live")),
                             12, Slate300, modifier = Modifier.padding(top = 2.dp), maxLines = 1
                         )
                         val btn = RoundedCornerShape(12.dp)
@@ -255,7 +246,7 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                         ) {
                             Icon(Icons.Filled.PlayArrow, null, tint = Slate950, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(8.dp))
-                            Txt("Watch Stream", 12, Slate950, FontWeight.Bold)
+                            Txt(tr(lang, "watch_stream"), 12, Slate950, FontWeight.Bold)
                         }
                     }
                 }
@@ -265,16 +256,16 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                 Modifier.padding(start = 20.dp, end = 20.dp, bottom = 24.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                QuickTile("Live TV", Icons.Filled.LiveTv, Cyan, Modifier.weight(1f)) { nav.navigate("live") }
-                QuickTile("Movies", Icons.Filled.Movie, Purple, Modifier.weight(1f)) {
+                QuickTile(tr(lang, "nav_live"), Icons.Filled.LiveTv, Cyan, Modifier.weight(1f)) { nav.navigate("live") }
+                QuickTile(tr(lang, "home_movies"), Icons.Filled.Movie, Purple, Modifier.weight(1f)) {
                     vm.vodTab = 0
                     nav.navigate("vod")
                 }
-                QuickTile("Series", Icons.Filled.Tv, Pink, Modifier.weight(1f)) {
+                QuickTile(tr(lang, "home_series"), Icons.Filled.Tv, Pink, Modifier.weight(1f)) {
                     vm.vodTab = 1
                     nav.navigate("vod")
                 }
-                QuickTile("Settings", Icons.Filled.Settings, Amber, Modifier.weight(1f)) { nav.navigate("settings") }
+                QuickTile(tr(lang, "nav_settings"), Icons.Filled.Settings, Amber, Modifier.weight(1f)) { nav.navigate("settings") }
             }
 
             Row(
@@ -282,15 +273,15 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Txt("CONTINUE WATCHING", 14, Slate400, FontWeight.Bold, spacing = 1f)
+                Txt(tr(lang, "continue_watching"), 14, Slate400, FontWeight.Bold, spacing = 1f)
                 Txt(
-                    "See All", 12, Cyan, FontWeight.SemiBold,
+                    tr(lang, "see_all"), 12, Cyan, FontWeight.SemiBold,
                     modifier = Modifier.tvClick(RoundedCornerShape(8.dp)) { nav.navigate("vod") }.padding(4.dp)
                 )
             }
             Spacer(Modifier.height(12.dp))
             if (vm.history.isEmpty()) {
-                Txt("Abhi tak kuch nahi dekha. Kuch chalayein, yahan aa jayega.", 12, Slate500, modifier = Modifier.padding(horizontal = 20.dp))
+                Txt(tr(lang, "no_history"), 12, Slate500, modifier = Modifier.padding(horizontal = 20.dp))
             } else {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 20.dp),
