@@ -298,15 +298,32 @@ fun HomeScreen(vm: AppViewModel, nav: NavController) {
                 ) {
                     items(vm.history) { h ->
                         HistoryCard(h) {
-                            vm.nowPlaying = PlayItem(
-                                url = h.url,
-                                title = h.title,
-                                subtitle = h.subtitle,
-                                isLive = h.isLive,
-                                poster = h.poster,
-                                historyKey = h.key,
-                                startPosition = if (h.isLive) 0L else h.position
-                            )
+                            if (h.isLive) {
+                                val chId = h.key.removePrefix("live:").substringBefore(":")
+                                val ch = vm.channels.firstOrNull { it.id == chId }
+                                if (ch != null) {
+                                    vm.playChannel(ch)
+                                } else {
+                                    vm.nowPlaying = PlayItem(
+                                        url = h.url,
+                                        title = h.title,
+                                        subtitle = h.subtitle,
+                                        isLive = true,
+                                        poster = h.poster,
+                                        historyKey = h.key
+                                    )
+                                }
+                            } else {
+                                vm.nowPlaying = PlayItem(
+                                    url = h.url,
+                                    title = h.title,
+                                    subtitle = h.subtitle,
+                                    isLive = false,
+                                    poster = h.poster,
+                                    historyKey = h.key,
+                                    startPosition = h.position
+                                )
+                            }
                             nav.navigate("player")
                         }
                     }
