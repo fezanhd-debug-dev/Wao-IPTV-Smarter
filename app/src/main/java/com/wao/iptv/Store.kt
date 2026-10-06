@@ -97,4 +97,19 @@ class Store(context: Context) {
     fun saveSnapshot(accountId: String, snap: ContentSnapshot) {
         sp.edit().putString(snapshotKey(accountId), gson.toJson(snap)).apply()
     }
+
+    private fun cacheKey(accountId: String) = "content_cache_$accountId"
+
+    fun loadCache(accountId: String): CachedContent? {
+        val j = sp.getString(cacheKey(accountId), null) ?: return null
+        return try {
+            gson.fromJson(j, CachedContent::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun saveCache(accountId: String, content: CachedContent) {
+        sp.edit().putString(cacheKey(accountId), gson.toJson(content)).apply()
+    }
 }
