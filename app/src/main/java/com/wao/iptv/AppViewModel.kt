@@ -183,11 +183,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val newMovies = (snap.movieCount - prev.movieCount).coerceAtLeast(0)
             val newSeries = (snap.seriesCount - prev.seriesCount).coerceAtLeast(0)
             val parts = mutableListOf<String>()
-            if (newLive > 0) parts.add("$newLive naye channels")
-            if (newMovies > 0) parts.add("$newMovies nayi movies")
-            if (newSeries > 0) parts.add("$newSeries nayi series")
+            if (newLive > 0) parts.add(tr(currentLang, "new_item_live").replace("{n}", newLive.toString()))
+            if (newMovies > 0) parts.add(tr(currentLang, "new_item_movies").replace("{n}", newMovies.toString()))
+            if (newSeries > 0) parts.add(tr(currentLang, "new_item_series").replace("{n}", newSeries.toString()))
             if (parts.isNotEmpty()) {
-                newContentMessage = parts.joinToString(", ") + " add hui hain"
+                newContentMessage = parts.joinToString(", ") + " " + tr(currentLang, "new_content_suffix")
             }
         }
         store.saveSnapshot(accId, snap)
@@ -195,6 +195,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissNewContentMessage() { newContentMessage = null }
     fun dismissExpiryWarning() { expiryWarningDismissed = true }
+
+    private fun applyCache(cached: CachedContent) {
+        liveCats = cached.liveCats
+        channels = cached.channels
+        movieCats = cached.movieCats
+        movies = cached.movies
+        seriesCats = cached.seriesCats
+        seriesList = cached.seriesList
+        account = cached.account
+    }
 
     fun connect(s: Session, onFail: () -> Unit = {}, onSuccess: () -> Unit) {
         if (loading) return
@@ -204,7 +214,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         newContentMessage = null
         viewModelScope.launch {
             try {
+                val accId = accountId(s)
+
                 if (s.type == "m3u") {
+                    val cached = store.loadCache(accId)
+                    if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty())) {
+                        applyCache(cached)
+                        session = s
+                        store.saveSession(s)
+                        maybeSaveAccount(s)
+                        expiryWarningDismissed = false
+                        loading = false
+                        onSuccess()
+                        refreshM3uInBackground(s, accId)
+                        return@launch
+                    }
+
                     val text = withContext(Dispatchers.IO) { httpGet(s.m3uUrl) }
                     if (!text.contains("#EXTINF")) throw RuntimeException(tr(currentLang, "err_invalid_m3u"))
                     loadingStep = 1
@@ -218,9 +243,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     seriesCats = emptyList()
                     seriesList = emptyList()
                     account = AccountInfo("M3U Playlist", "Active")
+                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 } else {
                     val api = XtreamApi(s.server, s.username, s.password)
                     val acc = withContext(Dispatchers.IO) { api.authenticate() }
+
+                    val cached = store.loadCache(accId)
+                    if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty() || cached.seriesList.isNotEmpty())) {
+                        applyCache(cached)
+                        account = acc
+                        session = s
+                        store.saveSession(s)
+                        store.saveLast(s.server, s.username)
+                        maybeSaveAccount(s)
+                        expiryWarningDismissed = false
+                        loading = false
+                        onSuccess()
+                        refreshXtreamInBackground(s, api, accId)
+                        return@launch
+                    }
 
                     loadingStep = 1
                     var liveErr: Exception? = null
@@ -254,6 +295,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         throw (liveErr ?: RuntimeException(tr(currentLang, "err_no_content")))
                     }
                     account = acc
+                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 }
 
                 session = s
@@ -261,7 +303,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (s.type == "xtream") store.saveLast(s.server, s.username)
                 maybeSaveAccount(s)
                 expiryWarningDismissed = false
-                checkNewContent(accountId(s), ContentSnapshot(channels.size, movies.size, seriesList.size))
+                checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
                 onSuccess()
             } catch (e: Exception) {
                 error = friendly(e)
@@ -269,6 +311,45 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } finally {
                 loading = false
                 loadingStep = 0
+            }
+        }
+    }
+
+    private fun refreshXtreamInBackground(s: Session, api: XtreamApi, accId: String) {
+        viewModelScope.launch {
+            try {
+                val live = withContext(Dispatchers.IO) { runCatching { api.liveChannels() }.getOrDefault(emptyList()) }
+                val liveC = withContext(Dispatchers.IO) { runCatching { api.liveCategories() }.getOrDefault(emptyList()) }
+                val mov = withContext(Dispatchers.IO) { runCatching { api.movies() }.getOrDefault(emptyList()) }
+                val movC = withContext(Dispatchers.IO) { runCatching { api.movieCategories() }.getOrDefault(emptyList()) }
+                val ser = withContext(Dispatchers.IO) { runCatching { api.series() }.getOrDefault(emptyList()) }
+                val serC = withContext(Dispatchers.IO) { runCatching { api.seriesCategories() }.getOrDefault(emptyList()) }
+                if (live.isNotEmpty() || mov.isNotEmpty() || ser.isNotEmpty()) {
+                    liveCats = liveC; channels = live
+                    movieCats = movC; movies = mov
+                    seriesCats = serC; seriesList = ser
+                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
+                }
+            } catch (e: Exception) {
+                // silent — cached data stays as-is
+            }
+        }
+    }
+
+    private fun refreshM3uInBackground(s: Session, accId: String) {
+        viewModelScope.launch {
+            try {
+                val text = withContext(Dispatchers.IO) { httpGet(s.m3uUrl) }
+                if (text.contains("#EXTINF")) {
+                    val r = withContext(Dispatchers.Default) { parseM3u(text) }
+                    liveCats = r.liveCats; channels = r.live
+                    movieCats = r.movieCats; movies = r.movies
+                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
+                }
+            } catch (e: Exception) {
+                // silent
             }
         }
     }
