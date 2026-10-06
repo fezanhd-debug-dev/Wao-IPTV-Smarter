@@ -54,6 +54,7 @@ private fun showSystemBars(activity: Activity?) {
 @Composable
 fun PlayerScreen(vm: AppViewModel, nav: NavController) {
     val item = vm.nowPlaying
+    val lang = vm.settings.lang
     val ctx = LocalContext.current
     val activity = remember { ctx.findActivity() }
     val audioManager = remember { ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager }
@@ -90,7 +91,6 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
     }
 
-    // Enter/exit: fullscreen immersive mode + restore orientation on leave
     DisposableEffect(Unit) {
         hideSystemBars(activity)
         onDispose {
@@ -99,9 +99,8 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
     }
 
-    // Player listeners + release — set up once for the lifetime of this screen
     DisposableEffect(Unit) {
-        fb.onFail = { e: PlaybackException -> errorMsg = "Stream chalane me masla hua: ${e.errorCodeName}" }
+        fb.onFail = { e: PlaybackException -> errorMsg = "${tr(lang, "stream_issue")} ${e.errorCodeName}" }
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
             override fun onPlaybackStateChanged(state: Int) {
@@ -118,7 +117,6 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
     }
 
-    // Load media whenever item changes (covers initial load AND Next/Previous)
     LaunchedEffect(item.url) {
         posMs = 0L
         durMs = 0L
@@ -275,7 +273,7 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                     Modifier.padding(top = 12.dp).background(Cyan, btn)
                         .clickable { errorMsg = null; fb.play(item.url) }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) { Txt("Dobara Try Karein", 12, Slate950, FontWeight.Bold) }
+                ) { Txt(tr(lang, "retry"), 12, Slate950, FontWeight.Bold) }
             }
         }
 
