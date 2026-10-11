@@ -15,9 +15,7 @@ sealed class UpdateResult {
     data class Failed(val reason: String) : UpdateResult()
 }
 
-const val UPDATE_CHECK_URL =
-    "https://raw.githubusercontent.com/fezanhd-debug-dev/Wao-IPTV-Smarter/main/version.json"
-
+const val UPDATE_CHECK_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/version.json"
 fun checkForUpdate(currentVersionCode: Int): UpdateResult {
     return try {
         val body = httpGet(UPDATE_CHECK_URL)
