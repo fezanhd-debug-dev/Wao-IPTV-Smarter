@@ -35,6 +35,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var seriesCats by mutableStateOf<List<Category>>(emptyList())
     var seriesList by mutableStateOf<List<VodItem>>(emptyList())
 
+    // Series ab category-wise lazy load hoti hain — yeh cache batata hai kaunsi
+    // category pehle se load ho chuki hai, taake dobara download na ho
+    val seriesByCat = mutableStateMapOf<String, List<VodItem>>()
+    var seriesCatLoading by mutableStateOf<String?>(null)
+
     var settings by mutableStateOf(store.loadSettings())
     var history by mutableStateOf(store.loadHistory())
     var nowPlaying by mutableStateOf<PlayItem?>(null)
@@ -116,9 +121,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return movies.filter { "movie:${it.id}" in keys }
     }
 
+    // Favorite series abhi loaded na bhi ho (uski category load na hui ho), tab bhi
+    // favorite ke apne saved title/poster se dikha dete hain
     fun favoriteSeries(): List<VodItem> {
-        val keys = favorites.filter { it.kind == "series" }.map { it.key }.toSet()
-        return seriesList.filter { "series:${it.id}" in keys }
+        val favs = favorites.filter { it.kind == "series" }
+        return favs.map { f ->
+            val id = f.key.removePrefix("series:")
+            seriesList.firstOrNull { it.id == id } ?: VodItem(
+                id = id,
+                name = f.title,
+                poster = f.poster,
+                rating = "",
+                year = "",
+                categoryId = "",
+                ext = "",
+                isSeries = true
+            )
+        }
     }
 
     private fun accountId(s: Session): String =
@@ -204,6 +223,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         seriesCats = cached.seriesCats
         seriesList = cached.seriesList
         account = cached.account
+        seriesByCat.clear()
+        cached.seriesList.groupBy { it.categoryId }.forEach { (catId, items) ->
+            if (catId.isNotBlank()) seriesByCat[catId] = items
+        }
+    }
+
+    // Ek category ki series lazy-load karta hai — sirf tab chalta hai jab user
+    // us category ko tap kare, taake sab kuch ek sath load na ho (jo crash ki wajah tha)
+    fun loadSeriesCategory(categoryId: String) {
+        if (categoryId.isBlank()) return
+        if (seriesByCat.containsKey(categoryId)) return
+        val s = session ?: return
+        if (s.type != "xtream") return
+        if (seriesCatLoading == categoryId) return
+        seriesCatLoading = categoryId
+        viewModelScope.launch {
+            try {
+                val api = XtreamApi(s.server, s.username, s.password)
+                val list = withContext(Dispatchers.IO) {
+                    runCatching { api.seriesByCategory(categoryId) }.getOrDefault(emptyList())
+                }
+                seriesByCat[categoryId] = list
+                val existingIds = seriesList.map { it.id }.toSet()
+                seriesList = seriesList + list.filter { it.id !in existingIds }
+                currentAccountId()?.let { accId ->
+                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                }
+            } finally {
+                if (seriesCatLoading == categoryId) seriesCatLoading = null
+            }
+        }
     }
 
     fun connect(s: Session, onFail: () -> Unit = {}, onSuccess: () -> Unit) {
@@ -242,6 +292,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     loadingStep = 3
                     seriesCats = emptyList()
                     seriesList = emptyList()
+                    seriesByCat.clear()
                     account = AccountInfo("M3U Playlist", "Active")
                     store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 } else {
@@ -249,7 +300,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val acc = withContext(Dispatchers.IO) { api.authenticate() }
 
                     val cached = store.loadCache(accId)
-                    if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty() || cached.seriesList.isNotEmpty())) {
+                    if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty() || cached.seriesCats.isNotEmpty())) {
                         applyCache(cached)
                         account = acc
                         session = s
@@ -283,15 +334,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         runCatching { api.movieCategories() }.getOrDefault(emptyList())
                     }
 
+                    // Step 3: SIRF categories load hoti hain — asal series list
+                    // category tap karne par lazy-load hogi (loadSeriesCategory se)
                     loadingStep = 3
-                    seriesList = withContext(Dispatchers.IO) {
-                        runCatching { api.series() }.getOrDefault(emptyList())
-                    }
                     seriesCats = withContext(Dispatchers.IO) {
                         runCatching { api.seriesCategories() }.getOrDefault(emptyList())
                     }
+                    seriesList = emptyList()
+                    seriesByCat.clear()
 
-                    if (channels.isEmpty() && movies.isEmpty() && seriesList.isEmpty()) {
+                    if (channels.isEmpty() && movies.isEmpty() && seriesCats.isEmpty()) {
                         throw (liveErr ?: RuntimeException(tr(currentLang, "err_no_content")))
                     }
                     account = acc
@@ -303,7 +355,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (s.type == "xtream") store.saveLast(s.server, s.username)
                 maybeSaveAccount(s)
                 expiryWarningDismissed = false
-                checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
+                checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesCats.size))
                 onSuccess()
             } catch (e: Exception) {
                 error = friendly(e)
@@ -315,6 +367,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Background refresh bhi ab sirf categories refresh karta hai, poori series
+    // list nahi — taake yeh bhi kabhi hang/crash ka sabab na bane
     private fun refreshXtreamInBackground(s: Session, api: XtreamApi, accId: String) {
         viewModelScope.launch {
             try {
@@ -322,14 +376,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val liveC = withContext(Dispatchers.IO) { runCatching { api.liveCategories() }.getOrDefault(emptyList()) }
                 val mov = withContext(Dispatchers.IO) { runCatching { api.movies() }.getOrDefault(emptyList()) }
                 val movC = withContext(Dispatchers.IO) { runCatching { api.movieCategories() }.getOrDefault(emptyList()) }
-                val ser = withContext(Dispatchers.IO) { runCatching { api.series() }.getOrDefault(emptyList()) }
                 val serC = withContext(Dispatchers.IO) { runCatching { api.seriesCategories() }.getOrDefault(emptyList()) }
-                if (live.isNotEmpty() || mov.isNotEmpty() || ser.isNotEmpty()) {
+                if (live.isNotEmpty() || mov.isNotEmpty() || serC.isNotEmpty()) {
                     liveCats = liveC; channels = live
                     movieCats = movC; movies = mov
-                    seriesCats = serC; seriesList = ser
+                    seriesCats = serC
                     store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
-                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
+                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, serC.size))
                 }
             } catch (e: Exception) {
                 // silent — cached data stays as-is
@@ -346,7 +399,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     liveCats = r.liveCats; channels = r.live
                     movieCats = r.movieCats; movies = r.movies
                     store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
-                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesList.size))
+                    checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesCats.size))
                 }
             } catch (e: Exception) {
                 // silent
@@ -371,6 +424,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         movies = emptyList()
         seriesCats = emptyList()
         seriesList = emptyList()
+        seriesByCat.clear()
         epg.clear()
         nowPlaying = null
         unlocked = false
