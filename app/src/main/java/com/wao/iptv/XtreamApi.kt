@@ -171,22 +171,29 @@ class XtreamApi(private val server: String, private val user: String, private va
             )
         }
 
-    fun series(): List<VodItem> =
-        httpJsonArray(url("get_series")) { m ->
-            val id = m["series_id"] ?: ""
-            if (id.isBlank()) null
-            else VodItem(
-                id = id,
-                name = m["name"] ?: "",
-                poster = m["cover"] ?: "",
-                rating = cleanRating(m["rating"] ?: m["rating_5based"]),
-                year = (m["releaseDate"] ?: m["release_date"] ?: m["year"] ?: "").take(4),
-                categoryId = m["category_id"] ?: "",
-                ext = "",
-                plot = m["plot"] ?: "",
-                isSeries = true
-            )
-        }
+    private fun mapSeriesEntry(m: HashMap<String, String>): VodItem? {
+        val id = m["series_id"] ?: ""
+        if (id.isBlank()) return null
+        return VodItem(
+            id = id,
+            name = m["name"] ?: "",
+            poster = m["cover"] ?: "",
+            rating = cleanRating(m["rating"] ?: m["rating_5based"]),
+            year = (m["releaseDate"] ?: m["release_date"] ?: m["year"] ?: "").take(4),
+            categoryId = m["category_id"] ?: "",
+            ext = "",
+            plot = m["plot"] ?: "",
+            isSeries = true
+        )
+    }
+
+    // Poori series list — bohot bade providers par bhari/sust ho sakti hai, is liye
+    // normal flow me ab use nahi hoti. Sirf fallback/future use ke liye rakhi hai.
+    fun series(): List<VodItem> = httpJsonArray(url("get_series")) { m -> mapSeriesEntry(m) }
+
+    // Sirf ek category ki series — yeh fast aur halka hota hai, isi ko lazy-load me use karte hain
+    fun seriesByCategory(categoryId: String): List<VodItem> =
+        httpJsonArray(url("get_series", "&category_id=${enc(categoryId)}")) { m -> mapSeriesEntry(m) }
 
     fun seriesEpisodes(seriesId: String): List<Episode> {
         val root = try {
