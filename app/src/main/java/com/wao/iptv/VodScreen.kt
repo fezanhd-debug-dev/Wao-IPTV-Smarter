@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -123,6 +124,7 @@ private fun SeriesDetail(vm: AppViewModel, series: VodItem, nav: NavController, 
 
 @Composable
 fun VodScreen(vm: AppViewModel, nav: NavController) {
+    val lang = vm.settings.lang
     var query by remember { mutableStateOf("") }
     var cat by remember { mutableStateOf("") }
     var showFavorites by remember { mutableStateOf(false) }
@@ -144,7 +146,16 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
     val filtered = remember(baseList, query, cat, showFavorites) {
         baseList.filter { (cat.isEmpty() || it.categoryId == cat) && (query.isBlank() || it.name.contains(query, true)) }
     }
-    val hero = if (showFavorites) null else filtered.firstOrNull()
+
+    // Series: jab tak category na chuni ho, poori list nahi dikhani — sirf prompt
+    val showCategoryPrompt = isSeries && !showFavorites && cat.isEmpty() && cats.isNotEmpty()
+    val isLoadingThisCat = isSeries && cat.isNotEmpty() && vm.seriesCatLoading == cat
+    val hero = if (showFavorites || showCategoryPrompt) null else filtered.firstOrNull()
+
+    fun selectCategory(id: String) {
+        cat = id
+        if (isSeries && id.isNotEmpty()) vm.loadSeriesCategory(id)
+    }
 
     Column(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -161,7 +172,7 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
                 Modifier.fillMaxWidth().background(Slate900, RoundedCornerShape(12.dp)).padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                listOf("Movies (${fmtCount(vm.movies.size)})" to 0, "TV Series (${fmtCount(vm.seriesList.size)})" to 1).forEach { (label, idx) ->
+                listOf("Movies (${fmtCount(vm.movies.size)})" to 0, "TV Series" to 1).forEach { (label, idx) ->
                     val sel = vm.vodTab == idx
                     val shape = RoundedCornerShape(10.dp)
                     Box(
@@ -179,7 +190,7 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
                 FavoritesChip(showFavorites, favCount) { showFavorites = !showFavorites }
                 Spacer(Modifier.width(8.dp))
                 if (!showFavorites) {
-                    CategoryChips(cats, cat, locked) { id -> if (id in locked) pinFor = id else cat = id }
+                    CategoryChips(cats, cat, locked) { id -> if (id in locked) pinFor = id else selectCategory(id) }
                 }
             }
         }
@@ -192,7 +203,7 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (hero != null) {
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                item(span = { GridItemSpan(2) }) {
                     val heroShape = RoundedCornerShape(20.dp)
                     Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(heroShape).background(Slate900)) {
                         AsyncImage(model = hero.poster, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -225,9 +236,22 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
             items(filtered, key = { it.id }) { v ->
                 PosterCard(vm, v) { if (v.isSeries) vm.openSeries(v) else { vm.playMovie(v); nav.navigate("player") } }
             }
-            if (filtered.isEmpty()) {
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
-                    Txt(if (showFavorites) "Abhi koi favorite nahi hai" else "Kuch nahi mila", 12, Slate500)
+            when {
+                showCategoryPrompt -> item(span = { GridItemSpan(2) }) {
+                    Txt(tr(lang, "series_pick_category"), 12, Slate500, modifier = Modifier.padding(top = 24.dp))
+                }
+                isLoadingThisCat -> item(span = { GridItemSpan(2) }) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(color = Cyan, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Txt(tr(lang, "series_loading_category"), 12, Slate500)
+                    }
+                }
+                filtered.isEmpty() -> item(span = { GridItemSpan(2) }) {
+                    Txt(if (showFavorites) "Abhi koi favorite nahi hai" else "Kuch nahi mila", 12, Slate500, modifier = Modifier.padding(top = 24.dp))
                 }
             }
         }
@@ -236,7 +260,7 @@ fun VodScreen(vm: AppViewModel, nav: NavController) {
 
     pinFor?.let { catId ->
         PinDialog("Parental PIN darj karein", { pinFor = null }) { p ->
-            if (vm.checkPin(p)) { vm.unlocked = true; cat = catId; pinFor = null; null } else "Ghalat PIN"
+            if (vm.checkPin(p)) { vm.unlocked = true; selectCategory(catId); pinFor = null; null } else "Ghalat PIN"
         }
     }
 }
