@@ -16,8 +16,6 @@ val APP_LANGUAGES = listOf(
     LangDef("ru", "Русский", "🇷🇺")
 )
 
-// App ki ab tak selected language — connection errors jaisi jagah jahan direct
-// Composable context nahi hota, wahan isi se translate hota hai.
 @Volatile
 var currentLang: String = "en"
 
@@ -79,7 +77,13 @@ private val EN = mapOf(
     "new_item_live" to "{n} new channels",
     "new_item_movies" to "{n} new movies",
     "new_item_series" to "{n} new series",
-    "new_content_suffix" to "added"
+    "new_content_suffix" to "added",
+    "update_required_title" to "Update Required",
+    "update_required_desc" to "A new version of this app is available. Please update to continue.",
+    "update_now" to "Update Now",
+    "checking_for_update" to "Checking for update...",
+    "series_pick_category" to "Select a category above to load series",
+    "series_loading_category" to "Loading series..."
 )
 
 private val UR_ROMAN = mapOf(
@@ -140,7 +144,13 @@ private val UR_ROMAN = mapOf(
     "new_item_live" to "{n} naye channels",
     "new_item_movies" to "{n} nayi movies",
     "new_item_series" to "{n} nayi series",
-    "new_content_suffix" to "add hui hain"
+    "new_content_suffix" to "add hui hain",
+    "update_required_title" to "Update Zaroori Hai",
+    "update_required_desc" to "Is app ka naya version available hai. Jari rakhne ke liye update karein.",
+    "update_now" to "Abhi Update Karein",
+    "checking_for_update" to "Update check ho raha hai...",
+    "series_pick_category" to "Series dekhne ke liye upar se koi category chunein",
+    "series_loading_category" to "Series load ho rahi hain..."
 )
 
 private val UR = mapOf(
@@ -201,7 +211,13 @@ private val UR = mapOf(
     "new_item_live" to "{n} نئے چینلز",
     "new_item_movies" to "{n} نئی موویز",
     "new_item_series" to "{n} نئی سیریز",
-    "new_content_suffix" to "شامل ہوئیں"
+    "new_content_suffix" to "شامل ہوئیں",
+    "update_required_title" to "اپڈیٹ ضروری ہے",
+    "update_required_desc" to "اس ایپ کا نیا ورژن دستیاب ہے۔ جاری رکھنے کے لیے اپڈیٹ کریں۔",
+    "update_now" to "ابھی اپڈیٹ کریں",
+    "checking_for_update" to "اپڈیٹ چیک ہو رہا ہے...",
+    "series_pick_category" to "سیریز دیکھنے کے لیے اوپر سے کوئی کیٹیگری منتخب کریں",
+    "series_loading_category" to "سیریز لوڈ ہو رہی ہیں..."
 )
 
 private val AR = mapOf(
@@ -262,7 +278,13 @@ private val AR = mapOf(
     "new_item_live" to "{n} قناة جديدة",
     "new_item_movies" to "{n} فيلم جديد",
     "new_item_series" to "{n} مسلسل جديد",
-    "new_content_suffix" to "تمت إضافتها"
+    "new_content_suffix" to "تمت إضافتها",
+    "update_required_title" to "التحديث مطلوب",
+    "update_required_desc" to "يتوفر إصدار جديد من هذا التطبيق. يرجى التحديث للمتابعة.",
+    "update_now" to "التحديث الآن",
+    "checking_for_update" to "جارٍ التحقق من التحديث...",
+    "series_pick_category" to "اختر فئة من الأعلى لتحميل المسلسلات",
+    "series_loading_category" to "جارٍ تحميل المسلسلات..."
 )
 
 private val PS = mapOf(
@@ -323,7 +345,13 @@ private val PS = mapOf(
     "new_item_live" to "{n} نوي چینلونه",
     "new_item_movies" to "{n} نوي فلمونه",
     "new_item_series" to "{n} نوي سیریزونه",
-    "new_content_suffix" to "اضافه شول"
+    "new_content_suffix" to "اضافه شول",
+    "update_required_title" to "اپڊيٽ ضروري دي",
+    "update_required_desc" to "د دې اپلیکیشن نوی نسخه شتون لري. د دوام لپاره تازه کړئ.",
+    "update_now" to "اوس یې تازه کړئ",
+    "checking_for_update" to "د تازه کولو چیک کیږي...",
+    "series_pick_category" to "د سیریزونو لپاره پورته یوه کتګوري وټاکئ",
+    "series_loading_category" to "سیریزونه لوډ کیږي..."
 )
 
 private val SD = mapOf(
@@ -384,7 +412,13 @@ private val SD = mapOf(
     "new_item_live" to "{n} نوان چينل",
     "new_item_movies" to "{n} نيون موويز",
     "new_item_series" to "{n} نيون سيريز",
-    "new_content_suffix" to "شامل ٿيون"
+    "new_content_suffix" to "شامل ٿيون",
+    "update_required_title" to "اپڊيٽ ضروري آهي",
+    "update_required_desc" to "هن ايپ جو نئون ورجن موجود آهي. جاري رکڻ لاءِ اپڊيٽ ڪريو.",
+    "update_now" to "هاڻي اپڊيٽ ڪريو",
+    "checking_for_update" to "اپڊيٽ چيڪ ٿي رهيو آهي...",
+    "series_pick_category" to "سيريز ڏسڻ لاءِ مٿان ڪا ڪيٽيگري چونڊيو",
+    "series_loading_category" to "سيريز لوڊ ٿي رهيون آهن..."
 )
 
 private val ES = mapOf(
@@ -445,7 +479,13 @@ private val ES = mapOf(
     "new_item_live" to "{n} canales nuevos",
     "new_item_movies" to "{n} películas nuevas",
     "new_item_series" to "{n} series nuevas",
-    "new_content_suffix" to "añadidos"
+    "new_content_suffix" to "añadidos",
+    "update_required_title" to "Actualización requerida",
+    "update_required_desc" to "Hay una nueva versión de esta app disponible. Actualiza para continuar.",
+    "update_now" to "Actualizar ahora",
+    "checking_for_update" to "Buscando actualización...",
+    "series_pick_category" to "Selecciona una categoría arriba para cargar series",
+    "series_loading_category" to "Cargando series..."
 )
 
 private val FR = mapOf(
@@ -506,7 +546,13 @@ private val FR = mapOf(
     "new_item_live" to "{n} nouvelles chaînes",
     "new_item_movies" to "{n} nouveaux films",
     "new_item_series" to "{n} nouvelles séries",
-    "new_content_suffix" to "ajoutés"
+    "new_content_suffix" to "ajoutés",
+    "update_required_title" to "Mise à jour requise",
+    "update_required_desc" to "Une nouvelle version de l'app est disponible. Veuillez mettre à jour pour continuer.",
+    "update_now" to "Mettre à jour maintenant",
+    "checking_for_update" to "Recherche de mise à jour...",
+    "series_pick_category" to "Sélectionnez une catégorie ci-dessus pour charger les séries",
+    "series_loading_category" to "Chargement des séries..."
 )
 
 private val HI = mapOf(
@@ -567,7 +613,13 @@ private val HI = mapOf(
     "new_item_live" to "{n} नए चैनल",
     "new_item_movies" to "{n} नई मूवीज़",
     "new_item_series" to "{n} नई सीरीज़",
-    "new_content_suffix" to "जुड़ी हैं"
+    "new_content_suffix" to "जुड़ी हैं",
+    "update_required_title" to "अपडेट आवश्यक है",
+    "update_required_desc" to "इस ऐप का नया वर्शन उपलब्ध है। जारी रखने के लिए अपडेट करें।",
+    "update_now" to "अभी अपडेट करें",
+    "checking_for_update" to "अपडेट जांचा जा रहा है...",
+    "series_pick_category" to "सीरीज़ लोड करने के लिए ऊपर से एक श्रेणी चुनें",
+    "series_loading_category" to "सीरीज़ लोड हो रही हैं..."
 )
 
 private val ZH = mapOf(
@@ -628,7 +680,13 @@ private val ZH = mapOf(
     "new_item_live" to "{n} 个新频道",
     "new_item_movies" to "{n} 部新电影",
     "new_item_series" to "{n} 部新剧集",
-    "new_content_suffix" to "已添加"
+    "new_content_suffix" to "已添加",
+    "update_required_title" to "需要更新",
+    "update_required_desc" to "此应用有新版本可用。请更新以继续使用。",
+    "update_now" to "立即更新",
+    "checking_for_update" to "正在检查更新...",
+    "series_pick_category" to "请在上方选择一个分类以加载剧集",
+    "series_loading_category" to "正在加载剧集..."
 )
 
 private val RU = mapOf(
@@ -689,7 +747,13 @@ private val RU = mapOf(
     "new_item_live" to "{n} новых каналов",
     "new_item_movies" to "{n} новых фильмов",
     "new_item_series" to "{n} новых сериалов",
-    "new_content_suffix" to "добавлено"
+    "new_content_suffix" to "добавлено",
+    "update_required_title" to "Требуется обновление",
+    "update_required_desc" to "Доступна новая версия приложения. Обновите, чтобы продолжить.",
+    "update_now" to "Обновить сейчас",
+    "checking_for_update" to "Проверка обновлений...",
+    "series_pick_category" to "Выберите категорию выше, чтобы загрузить сериалы",
+    "series_loading_category" to "Загрузка сериалов..."
 )
 
 private val ALL_LANGS: Map<String, Map<String, String>> = mapOf(
