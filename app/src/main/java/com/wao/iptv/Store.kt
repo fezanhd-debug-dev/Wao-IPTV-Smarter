@@ -2,8 +2,15 @@ package com.wao.iptv
 
 import android.content.Context
 import com.google.gson.Gson
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonWriter
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 
-class Store(context: Context) {
+class Store(private val context: Context) {
     private val sp = context.getSharedPreferences("wao_iptv", Context.MODE_PRIVATE)
     private val gson = Gson()
 
@@ -98,18 +105,39 @@ class Store(context: Context) {
         sp.edit().putString(snapshotKey(accountId), gson.toJson(snap)).apply()
     }
 
-    private fun cacheKey(accountId: String) = "content_cache_$accountId"
+    // ---- Content cache (channels/movies/series) ----
+    // Bohot bade providers (hazaron channels/movies/series) ke liye yeh data ek hi
+    // bade JSON String me badal kar SharedPreferences me rakhna OutOfMemoryError deta
+    // tha (100+ MB tak ka ek hi allocation). Ab yeh seedha file me CHHOTE TUKDON me
+    // stream hota hai — kabhi bhi ek bara allocation nahi banta, is liye crash nahi hota.
+    // Yeh function background thread (Dispatchers.IO) se hi call karein, main thread se nahi.
+
+    private fun cacheFile(accountId: String): File {
+        val safe = accountId.hashCode().toString()
+        return File(context.filesDir, "content_cache_$safe.json")
+    }
 
     fun loadCache(accountId: String): CachedContent? {
-        val j = sp.getString(cacheKey(accountId), null) ?: return null
+        val f = cacheFile(accountId)
+        if (!f.exists()) return null
         return try {
-            gson.fromJson(j, CachedContent::class.java)
+            JsonReader(InputStreamReader(FileInputStream(f), Charsets.UTF_8)).use { reader ->
+                gson.fromJson<CachedContent>(reader, CachedContent::class.java)
+            }
         } catch (e: Exception) {
             null
         }
     }
 
     fun saveCache(accountId: String, content: CachedContent) {
-        sp.edit().putString(cacheKey(accountId), gson.toJson(content)).apply()
+        val f = cacheFile(accountId)
+        try {
+            JsonWriter(OutputStreamWriter(FileOutputStream(f), Charsets.UTF_8)).use { writer ->
+                gson.toJson(content, CachedContent::class.java, writer)
+            }
+        } catch (e: Exception) {
+            // Cache best-effort hai — fail ho to purani corrupt file hata dein
+            f.delete()
+        }
     }
 }
