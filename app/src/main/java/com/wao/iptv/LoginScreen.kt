@@ -1,14 +1,17 @@
 package com.wao.iptv
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +23,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +36,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+// Admin panel ka asal link — secret random folder me, public download link se bilkul
+// alag, taake Client ko iska pata na chale. Sirf 21-tap se khulta hai, kahin dikhta nahi.
+const val ADMIN_PANEL_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/sys-x7f3k2/"
 
 @Composable
 fun BootScreen(vm: AppViewModel, nav: NavController) {
@@ -120,19 +134,121 @@ private fun ModeTab(text: String, icon: ImageVector, selected: Boolean, modifier
     ) {
         Icon(icon, null, tint = if (selected) Slate950 else Slate400, modifier = Modifier.size(12.dp))
         Spacer(Modifier.width(6.dp))
-        Txt(text, 12, if (selected) Slate950 else Slate400, FontWeight.Bold)
+        Txt(text, 11, if (selected) Slate950 else Slate400, FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () -> Unit) {
+    val ctx = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    val deviceId = remember { getDeviceId(ctx) }
+    var checking by remember { mutableStateOf(false) }
+    var notActivatedYet by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
+    var copied by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxWidth()) {
+        Txt(tr(lang, "device_id_desc"), 12, Slate300, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(14.dp))
+
+        val boxShape = RoundedCornerShape(14.dp)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(Slate950.copy(alpha = 0.6f), boxShape)
+                .border(1.dp, Slate800, boxShape)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Txt(tr(lang, "device_id_label"), 10, Slate400, FontWeight.Bold, spacing = 0.8f)
+                Txt(deviceId, 16, Cyan, FontWeight.Black, Modifier.padding(top = 4.dp), spacing = 1f)
+            }
+            Box(
+                Modifier.size(38.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
+                    .tvClick(RoundedCornerShape(10.dp)) {
+                        clipboard.setText(AnnotatedString(deviceId))
+                        copied = true
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.ContentCopy, null, tint = if (copied) Emerald else Slate300, modifier = Modifier.size(16.dp))
+            }
+        }
+        if (copied) {
+            Spacer(Modifier.height(6.dp))
+            Txt(tr(lang, "device_copied"), 11, Emerald, FontWeight.SemiBold)
+        }
+
+        Spacer(Modifier.height(18.dp))
+        val btnShape = RoundedCornerShape(16.dp)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 52.dp)
+                .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
+                .tvClick(btnShape) {
+                    if (!checking) {
+                        checking = true
+                        notActivatedYet = false
+                        localError = null
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) { checkDeviceActivation(deviceId) }
+                            checking = false
+                            if (r.activated && r.host.isNotBlank() && r.user.isNotBlank()) {
+                                val s = Session("xtream", normalizeServer(r.host), r.user, r.pass)
+                                vm.connect(s) { onLoggedIn() }
+                            } else if (r.error.isNotBlank()) {
+                                localError = r.error
+                            } else {
+                                notActivatedYet = true
+                            }
+                        }
+                    }
+                }
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (checking || vm.loading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Txt(tr(lang, "device_checking"), 12, Slate950, FontWeight.Black)
+                }
+            } else {
+                Txt(tr(lang, "device_check_button"), 13, Slate950, FontWeight.Black)
+            }
+        }
+
+        if (notActivatedYet) {
+            Spacer(Modifier.height(12.dp))
+            Txt(tr(lang, "device_not_activated"), 12, Amber, FontWeight.SemiBold, modifier = Modifier.fillMaxWidth(), align = TextAlign.Center)
+        }
+        val err = localError ?: vm.error
+        if (err != null) {
+            Spacer(Modifier.height(12.dp))
+            Txt(err, 12, RedSoft, FontWeight.SemiBold, Modifier.fillMaxWidth(), align = TextAlign.Center)
+        }
     }
 }
 
 @Composable
 fun LoginScreen(vm: AppViewModel, nav: NavController) {
     val lang = vm.settings.lang
+    val uriHandler = LocalUriHandler.current
     var mode by remember { mutableStateOf("xtream") }
     var server by remember { mutableStateOf(vm.lastServer) }
     var user by remember { mutableStateOf(vm.lastUser) }
     var pass by remember { mutableStateOf("") }
     var m3u by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+
+    // Hidden admin panel: "Powered by..." text par 21 baar tap karne se khulta hai.
+    // Yeh counter sirf is screen ke andar hai — client ko kahin koi ishara nahi milta.
+    var tapCount by remember { mutableStateOf(0) }
 
     fun submit() {
         localError = null
@@ -192,66 +308,109 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                         .fillMaxWidth()
                         .background(Slate900.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
                         .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     ModeTab(tr(lang, "tab_xtream"), Icons.Filled.Person, mode == "xtream", Modifier.weight(1f)) { mode = "xtream" }
                     ModeTab(tr(lang, "tab_m3u"), Icons.Filled.Link, mode == "m3u", Modifier.weight(1f)) { mode = "m3u" }
+                    ModeTab(tr(lang, "tab_device"), Icons.Filled.PhoneAndroid, mode == "device", Modifier.weight(1f)) { mode = "device" }
                 }
                 Spacer(Modifier.height(24.dp))
 
-                if (mode == "xtream") {
-                    LoginField(tr(lang, "label_server"), Icons.Filled.Public, server, { server = it }, tr(lang, "ph_server"), KeyboardType.Uri)
-                    Spacer(Modifier.height(16.dp))
-                    LoginField(tr(lang, "label_username"), Icons.Filled.Person, user, { user = it }, tr(lang, "ph_username"))
-                    Spacer(Modifier.height(16.dp))
-                    LoginField(tr(lang, "label_password"), Icons.Filled.Lock, pass, { pass = it }, "••••••••", password = true)
-                } else {
-                    LoginField(tr(lang, "tab_m3u"), Icons.Filled.Link, m3u, { m3u = it }, "https://provider.com/get.php?username=...", KeyboardType.Uri)
-                }
-                Spacer(Modifier.height(16.dp))
+                when (mode) {
+                    "xtream" -> {
+                        LoginField(tr(lang, "label_server"), Icons.Filled.Public, server, { server = it }, tr(lang, "ph_server"), KeyboardType.Uri)
+                        Spacer(Modifier.height(16.dp))
+                        LoginField(tr(lang, "label_username"), Icons.Filled.Person, user, { user = it }, tr(lang, "ph_username"))
+                        Spacer(Modifier.height(16.dp))
+                        LoginField(tr(lang, "label_password"), Icons.Filled.Lock, pass, { pass = it }, "••••••••", password = true)
+                        Spacer(Modifier.height(16.dp))
 
-                val btnShape = RoundedCornerShape(16.dp)
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
-                        .tvClick(btnShape) { if (!vm.loading) submit() }
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (vm.loading) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(10.dp))
-                            Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
+                        val btnShape = RoundedCornerShape(16.dp)
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 52.dp)
+                                .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
+                                .tvClick(btnShape) { if (!vm.loading) submit() }
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (vm.loading) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
+                                }
+                            } else {
+                                Txt(tr(lang, "btn_connect"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
+                            }
                         }
-                    } else {
-                        Txt(
-                            if (mode == "xtream") tr(lang, "btn_connect") else tr(lang, "btn_loadm3u"),
-                            13, Slate950, FontWeight.Black,
-                            modifier = Modifier.fillMaxWidth(),
-                            spacing = 0.5f,
-                            align = TextAlign.Center
-                        )
+                        if (vm.loading) {
+                            Spacer(Modifier.height(16.dp))
+                            LoadStepsGrid(vm.loadingStep, lang)
+                        }
+                        val err = localError ?: vm.error
+                        if (err != null) {
+                            Spacer(Modifier.height(12.dp))
+                            Txt(err, 12, RedSoft, FontWeight.SemiBold, Modifier.fillMaxWidth(), align = TextAlign.Center)
+                        }
                     }
-                }
+                    "m3u" -> {
+                        LoginField(tr(lang, "tab_m3u"), Icons.Filled.Link, m3u, { m3u = it }, "https://provider.com/get.php?username=...", KeyboardType.Uri)
+                        Spacer(Modifier.height(16.dp))
 
-                if (vm.loading) {
-                    Spacer(Modifier.height(16.dp))
-                    LoadStepsGrid(vm.loadingStep, lang)
-                }
-
-                val err = localError ?: vm.error
-                if (err != null) {
-                    Spacer(Modifier.height(12.dp))
-                    Txt(err, 12, RedSoft, FontWeight.SemiBold, Modifier.fillMaxWidth(), align = TextAlign.Center)
+                        val btnShape = RoundedCornerShape(16.dp)
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 52.dp)
+                                .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
+                                .tvClick(btnShape) { if (!vm.loading) submit() }
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (vm.loading) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
+                                }
+                            } else {
+                                Txt(tr(lang, "btn_loadm3u"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
+                            }
+                        }
+                        if (vm.loading) {
+                            Spacer(Modifier.height(16.dp))
+                            LoadStepsGrid(vm.loadingStep, lang)
+                        }
+                        val err = localError ?: vm.error
+                        if (err != null) {
+                            Spacer(Modifier.height(12.dp))
+                            Txt(err, 12, RedSoft, FontWeight.SemiBold, Modifier.fillMaxWidth(), align = TextAlign.Center)
+                        }
+                    }
+                    "device" -> {
+                        DeviceIdLoginSection(vm, lang) {
+                            nav.navigate(vm.homeRoute) { popUpTo("login") { inclusive = true } }
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(24.dp))
                 HLine()
                 Spacer(Modifier.height(16.dp))
-                Txt(tr(lang, "powered_by"), 12, Slate400, modifier = Modifier.fillMaxWidth(), align = TextAlign.Center)
+                Txt(
+                    tr(lang, "powered_by"), 12, Slate400,
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+                            tapCount++
+                            if (tapCount >= 21) {
+                                tapCount = 0
+                                uriHandler.openUri(ADMIN_PANEL_URL)
+                            }
+                        },
+                    align = TextAlign.Center
+                )
             }
         }
     }
