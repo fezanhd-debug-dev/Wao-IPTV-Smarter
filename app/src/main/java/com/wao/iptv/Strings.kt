@@ -23,6 +23,7 @@ private val EN = mapOf(
     "tagline" to "Stream Anytime • Anywhere",
     "tab_xtream" to "Xtream Codes",
     "tab_m3u" to "M3U Playlist",
+    "tab_device" to "Device ID",
     "label_server" to "Server URL",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "Username",
@@ -83,13 +84,20 @@ private val EN = mapOf(
     "update_now" to "Update Now",
     "checking_for_update" to "Checking for update...",
     "series_pick_category" to "Select a category above to load series",
-    "series_loading_category" to "Loading series..."
+    "series_loading_category" to "Loading series...",
+    "device_id_label" to "Your Device ID",
+    "device_id_desc" to "Share this ID with your provider on WhatsApp. Once they activate it, tap Check Activation to log in automatically.",
+    "device_check_button" to "CHECK ACTIVATION",
+    "device_checking" to "CHECKING...",
+    "device_not_activated" to "Not activated yet. Share your Device ID and try again later.",
+    "device_copied" to "Copied to clipboard"
 )
 
 private val UR_ROMAN = mapOf(
     "tagline" to "Kabhi Bhi • Kahin Bhi Dekhein",
     "tab_xtream" to "Xtream Codes",
     "tab_m3u" to "M3U Playlist",
+    "tab_device" to "Device ID",
     "label_server" to "Server URL",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "Username",
@@ -150,13 +158,20 @@ private val UR_ROMAN = mapOf(
     "update_now" to "Abhi Update Karein",
     "checking_for_update" to "Update check ho raha hai...",
     "series_pick_category" to "Series dekhne ke liye upar se koi category chunein",
-    "series_loading_category" to "Series load ho rahi hain..."
+    "series_loading_category" to "Series load ho rahi hain...",
+    "device_id_label" to "Aapki Device ID",
+    "device_id_desc" to "Yeh ID apne provider ko WhatsApp par bhejein. Jab woh activate kar den, Check Activation dabayen taake khud-ba-khud login ho jaye.",
+    "device_check_button" to "ACTIVATION CHECK KAREIN",
+    "device_checking" to "CHECK HO RAHA HAI...",
+    "device_not_activated" to "Abhi tak activate nahi hua. Apni Device ID bhej kar dobara try karein.",
+    "device_copied" to "Copy ho gaya"
 )
 
 private val UR = mapOf(
     "tagline" to "کسی بھی وقت • کہیں بھی دیکھیں",
     "tab_xtream" to "ایکسٹریم کوڈز",
     "tab_m3u" to "ایم تھری یو پلے لسٹ",
+    "tab_device" to "ڈیوائس آئی ڈی",
     "label_server" to "سرور یو آر ایل",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "یوزر نیم",
@@ -217,13 +232,20 @@ private val UR = mapOf(
     "update_now" to "ابھی اپڈیٹ کریں",
     "checking_for_update" to "اپڈیٹ چیک ہو رہا ہے...",
     "series_pick_category" to "سیریز دیکھنے کے لیے اوپر سے کوئی کیٹیگری منتخب کریں",
-    "series_loading_category" to "سیریز لوڈ ہو رہی ہیں..."
+    "series_loading_category" to "سیریز لوڈ ہو رہی ہیں...",
+    "device_id_label" to "آپ کی ڈیوائس آئی ڈی",
+    "device_id_desc" to "یہ آئی ڈی اپنے پرووائیڈر کو واٹس ایپ پر بھیجیں۔ ایکٹیویٹ ہونے کے بعد Check Activation دبائیں۔",
+    "device_check_button" to "ایکٹیویشن چیک کریں",
+    "device_checking" to "چیک ہو رہا ہے...",
+    "device_not_activated" to "ابھی ایکٹیویٹ نہیں ہوا۔ اپنی ڈیوائس آئی ڈی بھیج کر دوبارہ کوشش کریں۔",
+    "device_copied" to "کاپی ہو گیا"
 )
 
 private val AR = mapOf(
     "tagline" to "شاهد في أي وقت ومن أي مكان",
     "tab_xtream" to "رموز Xtream",
     "tab_m3u" to "قائمة M3U",
+    "tab_device" to "معرف الجهاز",
     "label_server" to "رابط الخادم",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "اسم المستخدم",
@@ -284,13 +306,20 @@ private val AR = mapOf(
     "update_now" to "التحديث الآن",
     "checking_for_update" to "جارٍ التحقق من التحديث...",
     "series_pick_category" to "اختر فئة من الأعلى لتحميل المسلسلات",
-    "series_loading_category" to "جارٍ تحميل المسلسلات..."
+    "series_loading_category" to "جارٍ تحميل المسلسلات...",
+    "device_id_label" to "معرف جهازك",
+    "device_id_desc" to "شارك هذا المعرف مع مزودك عبر واتساب. بعد التفعيل اضغط Check Activation.",
+    "device_check_button" to "تحقق من التفعيل",
+    "device_checking" to "جارٍ التحقق...",
+    "device_not_activated" to "لم يتم التفعيل بعد. شارك معرف جهازك وحاول لاحقًا.",
+    "device_copied" to "تم النسخ"
 )
 
 private val PS = mapOf(
     "tagline" to "هر وخت • هر ځای وګورئ",
     "tab_xtream" to "Xtream کوډونه",
     "tab_m3u" to "M3U لیست",
+    "tab_device" to "د ډیوائس ID",
     "label_server" to "د سرور یو آر ال",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "کارن نوم",
@@ -351,13 +380,20 @@ private val PS = mapOf(
     "update_now" to "اوس یې تازه کړئ",
     "checking_for_update" to "د تازه کولو چیک کیږي...",
     "series_pick_category" to "د سیریزونو لپاره پورته یوه کتګوري وټاکئ",
-    "series_loading_category" to "سیریزونه لوډ کیږي..."
+    "series_loading_category" to "سیریزونه لوډ کیږي...",
+    "device_id_label" to "ستاسو د ډیوائس ID",
+    "device_id_desc" to "دا ID خپل پرووایډر ته واټس اپ کې واستوئ. فعالیدو وروسته Check Activation کېکاږئ.",
+    "device_check_button" to "فعالول چیک کړئ",
+    "device_checking" to "چیک کیږي...",
+    "device_not_activated" to "تر اوسه فعال نه دی. خپله ID واستوئ او بیا هڅه وکړئ.",
+    "device_copied" to "کاپي شو"
 )
 
 private val SD = mapOf(
     "tagline" to "ڪنهن به وقت • ڪٿي به ڏسو",
     "tab_xtream" to "Xtream ڪوڊس",
     "tab_m3u" to "M3U پليلسٽ",
+    "tab_device" to "ڊيوائس ID",
     "label_server" to "سرور يو آر ايل",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "يوزرنيم",
@@ -418,13 +454,20 @@ private val SD = mapOf(
     "update_now" to "هاڻي اپڊيٽ ڪريو",
     "checking_for_update" to "اپڊيٽ چيڪ ٿي رهيو آهي...",
     "series_pick_category" to "سيريز ڏسڻ لاءِ مٿان ڪا ڪيٽيگري چونڊيو",
-    "series_loading_category" to "سيريز لوڊ ٿي رهيون آهن..."
+    "series_loading_category" to "سيريز لوڊ ٿي رهيون آهن...",
+    "device_id_label" to "توهان جي ڊيوائس ID",
+    "device_id_desc" to "هي ID پنهنجي پرووائيڊر کي واٽس ايپ تي موڪليو. Activate ٿيڻ بعد Check Activation دبايو.",
+    "device_check_button" to "ايڪٽيويشن چيڪ ڪريو",
+    "device_checking" to "چيڪ ٿي رهيو آهي...",
+    "device_not_activated" to "اڃا تائين ايڪٽيويٽ نه ٿيو. پنهنجي ID موڪلي ٻيهر ڪوشش ڪريو.",
+    "device_copied" to "ڪاپي ٿي ويو"
 )
 
 private val ES = mapOf(
     "tagline" to "Mira en cualquier momento y lugar",
     "tab_xtream" to "Códigos Xtream",
     "tab_m3u" to "Lista M3U",
+    "tab_device" to "ID de dispositivo",
     "label_server" to "URL del servidor",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "Usuario",
@@ -485,13 +528,20 @@ private val ES = mapOf(
     "update_now" to "Actualizar ahora",
     "checking_for_update" to "Buscando actualización...",
     "series_pick_category" to "Selecciona una categoría arriba para cargar series",
-    "series_loading_category" to "Cargando series..."
+    "series_loading_category" to "Cargando series...",
+    "device_id_label" to "Tu ID de dispositivo",
+    "device_id_desc" to "Comparte este ID con tu proveedor por WhatsApp. Al activarlo, toca Check Activation.",
+    "device_check_button" to "VERIFICAR ACTIVACIÓN",
+    "device_checking" to "VERIFICANDO...",
+    "device_not_activated" to "Aún no activado. Comparte tu ID e intenta más tarde.",
+    "device_copied" to "Copiado al portapapeles"
 )
 
 private val FR = mapOf(
     "tagline" to "Regardez à tout moment, n'importe où",
     "tab_xtream" to "Codes Xtream",
     "tab_m3u" to "Playlist M3U",
+    "tab_device" to "ID appareil",
     "label_server" to "URL du serveur",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "Nom d'utilisateur",
@@ -552,13 +602,20 @@ private val FR = mapOf(
     "update_now" to "Mettre à jour maintenant",
     "checking_for_update" to "Recherche de mise à jour...",
     "series_pick_category" to "Sélectionnez une catégorie ci-dessus pour charger les séries",
-    "series_loading_category" to "Chargement des séries..."
+    "series_loading_category" to "Chargement des séries...",
+    "device_id_label" to "Votre ID appareil",
+    "device_id_desc" to "Partagez cet ID avec votre fournisseur sur WhatsApp. Une fois activé, appuyez sur Check Activation.",
+    "device_check_button" to "VÉRIFIER L'ACTIVATION",
+    "device_checking" to "VÉRIFICATION...",
+    "device_not_activated" to "Pas encore activé. Partagez votre ID et réessayez plus tard.",
+    "device_copied" to "Copié"
 )
 
 private val HI = mapOf(
     "tagline" to "कभी भी, कहीं भी देखें",
     "tab_xtream" to "Xtream कोड्स",
     "tab_m3u" to "M3U प्लेलिस्ट",
+    "tab_device" to "डिवाइस ID",
     "label_server" to "सर्वर यूआरएल",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "यूज़रनेम",
@@ -619,13 +676,20 @@ private val HI = mapOf(
     "update_now" to "अभी अपडेट करें",
     "checking_for_update" to "अपडेट जांचा जा रहा है...",
     "series_pick_category" to "सीरीज़ लोड करने के लिए ऊपर से एक श्रेणी चुनें",
-    "series_loading_category" to "सीरीज़ लोड हो रही हैं..."
+    "series_loading_category" to "सीरीज़ लोड हो रही हैं...",
+    "device_id_label" to "आपकी डिवाइस ID",
+    "device_id_desc" to "यह ID अपने प्रोवाइडर को WhatsApp पर भेजें। एक्टिवेट होने पर Check Activation दबाएं।",
+    "device_check_button" to "एक्टिवेशन चेक करें",
+    "device_checking" to "चेक हो रहा है...",
+    "device_not_activated" to "अभी एक्टिवेट नहीं हुआ। अपनी ID भेज कर दोबारा कोशिश करें।",
+    "device_copied" to "कॉपी हो गया"
 )
 
 private val ZH = mapOf(
     "tagline" to "随时随地观看",
     "tab_xtream" to "Xtream 代码",
     "tab_m3u" to "M3U 播放列表",
+    "tab_device" to "设备 ID",
     "label_server" to "服务器地址",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "用户名",
@@ -686,13 +750,20 @@ private val ZH = mapOf(
     "update_now" to "立即更新",
     "checking_for_update" to "正在检查更新...",
     "series_pick_category" to "请在上方选择一个分类以加载剧集",
-    "series_loading_category" to "正在加载剧集..."
+    "series_loading_category" to "正在加载剧集...",
+    "device_id_label" to "您的设备 ID",
+    "device_id_desc" to "请通过 WhatsApp 将此 ID 分享给您的供应商。激活后点击 Check Activation。",
+    "device_check_button" to "检查激活状态",
+    "device_checking" to "正在检查...",
+    "device_not_activated" to "尚未激活。请分享您的设备 ID 并稍后重试。",
+    "device_copied" to "已复制"
 )
 
 private val RU = mapOf(
     "tagline" to "Смотрите в любое время и в любом месте",
     "tab_xtream" to "Коды Xtream",
     "tab_m3u" to "Плейлист M3U",
+    "tab_device" to "ID устройства",
     "label_server" to "URL сервера",
     "ph_server" to "http://my-iptv-server.com:8080",
     "label_username" to "Имя пользователя",
@@ -753,7 +824,13 @@ private val RU = mapOf(
     "update_now" to "Обновить сейчас",
     "checking_for_update" to "Проверка обновлений...",
     "series_pick_category" to "Выберите категорию выше, чтобы загрузить сериалы",
-    "series_loading_category" to "Загрузка сериалов..."
+    "series_loading_category" to "Загрузка сериалов...",
+    "device_id_label" to "Ваш ID устройства",
+    "device_id_desc" to "Отправьте этот ID провайдеру в WhatsApp. После активации нажмите Check Activation.",
+    "device_check_button" to "ПРОВЕРИТЬ АКТИВАЦИЮ",
+    "device_checking" to "ПРОВЕРКА...",
+    "device_not_activated" to "Ещё не активировано. Отправьте ID и попробуйте позже.",
+    "device_copied" to "Скопировано"
 )
 
 private val ALL_LANGS: Map<String, Map<String, String>> = mapOf(
