@@ -229,6 +229,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Cache save/load ab file-streaming use karta hai (Store.kt) jo kabhi bhi ek bara
+    // JSON String nahi banata — is liye yeh hamesha background thread par chalate hain
+    private suspend fun saveCacheSafe(accId: String, content: CachedContent) {
+        withContext(Dispatchers.IO) { store.saveCache(accId, content) }
+    }
+
+    private suspend fun loadCacheSafe(accId: String): CachedContent? =
+        withContext(Dispatchers.IO) { store.loadCache(accId) }
+
     // Ek category ki series lazy-load karta hai — sirf tab chalta hai jab user
     // us category ko tap kare, taake sab kuch ek sath load na ho (jo crash ki wajah tha)
     fun loadSeriesCategory(categoryId: String) {
@@ -248,7 +257,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val existingIds = seriesList.map { it.id }.toSet()
                 seriesList = seriesList + list.filter { it.id !in existingIds }
                 currentAccountId()?.let { accId ->
-                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 }
             } finally {
                 if (seriesCatLoading == categoryId) seriesCatLoading = null
@@ -267,7 +276,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val accId = accountId(s)
 
                 if (s.type == "m3u") {
-                    val cached = store.loadCache(accId)
+                    val cached = loadCacheSafe(accId)
                     if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty())) {
                         applyCache(cached)
                         session = s
@@ -294,12 +303,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     seriesList = emptyList()
                     seriesByCat.clear()
                     account = AccountInfo("M3U Playlist", "Active")
-                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 } else {
                     val api = XtreamApi(s.server, s.username, s.password)
                     val acc = withContext(Dispatchers.IO) { api.authenticate() }
 
-                    val cached = store.loadCache(accId)
+                    val cached = loadCacheSafe(accId)
                     if (cached != null && (cached.channels.isNotEmpty() || cached.movies.isNotEmpty() || cached.seriesCats.isNotEmpty())) {
                         applyCache(cached)
                         account = acc
@@ -347,7 +356,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         throw (liveErr ?: RuntimeException(tr(currentLang, "err_no_content")))
                     }
                     account = acc
-                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                 }
 
                 session = s
@@ -381,7 +390,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     liveCats = liveC; channels = live
                     movieCats = movC; movies = mov
                     seriesCats = serC
-                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                     checkNewContent(accId, ContentSnapshot(channels.size, movies.size, serC.size))
                 }
             } catch (e: Exception) {
@@ -398,7 +407,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val r = withContext(Dispatchers.Default) { parseM3u(text) }
                     liveCats = r.liveCats; channels = r.live
                     movieCats = r.movieCats; movies = r.movies
-                    store.saveCache(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
+                    saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                     checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesCats.size))
                 }
             } catch (e: Exception) {
