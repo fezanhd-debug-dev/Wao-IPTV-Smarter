@@ -25,7 +25,11 @@ fun getDeviceId(context: Context): String {
 fun checkDeviceActivation(deviceId: String): DeviceActivationResult {
     return try {
         val body = httpGet("$DEVICE_CHECK_URL?id=$deviceId")
-        val root = JsonParser.parseString(body)
+        val root = try {
+            JsonParser.parseString(body)
+        } catch (e: Exception) {
+            return DeviceActivationResult(false, error = "Server se sahi jawab nahi mila. Baad me try karein.")
+        }
         if (!root.isJsonObject) return DeviceActivationResult(false, error = "Server ne sahi jawab nahi diya")
         val o = root.asJsonObject
         fun str(k: String): String {
