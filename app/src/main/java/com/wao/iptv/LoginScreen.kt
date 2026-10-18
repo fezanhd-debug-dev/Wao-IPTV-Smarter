@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -148,6 +150,21 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
     var notActivatedYet by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
     var copied by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+
+    // Jab tak checking/connect chal raha hai, progress ko khud-ba-khud 1% se ~95% tak
+    // smoothly barhate hain — asal "Checking..." se "Connect" tak poori process
+    // (device check + login + channels load) ka ehsaas dene ke liye.
+    LaunchedEffect(checking, vm.loading) {
+        if (checking || vm.loading) {
+            progress = 0.01f
+            while (isActive && (checking || vm.loading) && progress < 0.95f) {
+                delay(120)
+                val remaining = 0.95f - progress
+                progress += (remaining * 0.06f).coerceAtLeast(0.004f)
+            }
+        }
+    }
 
     Column(Modifier.fillMaxWidth()) {
         Txt(tr(lang, "device_id_desc"), 12, Slate300, modifier = Modifier.fillMaxWidth())
@@ -184,6 +201,7 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
         }
 
         Spacer(Modifier.height(18.dp))
+        val busy = checking || vm.loading
         val btnShape = RoundedCornerShape(16.dp)
         Box(
             Modifier
@@ -191,20 +209,25 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
                 .heightIn(min = 52.dp)
                 .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
                 .tvClick(btnShape) {
-                    if (!checking) {
+                    if (!busy) {
                         checking = true
                         notActivatedYet = false
                         localError = null
                         scope.launch {
                             val r = withContext(Dispatchers.IO) { checkDeviceActivation(deviceId) }
-                            checking = false
                             if (r.activated && r.host.isNotBlank() && r.user.isNotBlank()) {
                                 val s = Session("xtream", normalizeServer(r.host), r.user, r.pass)
-                                vm.connect(s) { onLoggedIn() }
-                            } else if (r.error.isNotBlank()) {
-                                localError = r.error
+                                vm.connect(s,
+                                    onFail = { checking = false },
+                                    onSuccess = { progress = 1f; checking = false; onLoggedIn() }
+                                )
                             } else {
-                                notActivatedYet = true
+                                checking = false
+                                if (r.error.isNotBlank()) {
+                                    localError = r.error
+                                } else {
+                                    notActivatedYet = true
+                                }
                             }
                         }
                     }
@@ -212,14 +235,29 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
-            if (checking || vm.loading) {
+            if (busy) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
-                    Txt(tr(lang, "device_checking"), 12, Slate950, FontWeight.Black)
+                    Txt("${tr(lang, "device_checking")} ${(progress * 100).toInt()}%", 12, Slate950, FontWeight.Black)
                 }
             } else {
                 Txt(tr(lang, "device_check_button"), 13, Slate950, FontWeight.Black)
+            }
+        }
+
+        if (busy) {
+            Spacer(Modifier.height(10.dp))
+            val trackShape = RoundedCornerShape(50)
+            Box(
+                Modifier.fillMaxWidth().height(6.dp).background(Slate800, trackShape)
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress.coerceIn(0f, 1f))
+                        .background(Brush.horizontalGradient(listOf(Cyan, Blue)), trackShape)
+                )
             }
         }
 
