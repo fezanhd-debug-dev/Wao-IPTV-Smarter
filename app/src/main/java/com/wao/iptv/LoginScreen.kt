@@ -42,8 +42,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// Admin panel ka asal link — secret random folder me, public download link se bilkul
-// alag, taake Client ko iska pata na chale. Sirf 21-tap se khulta hai, kahin dikhta nahi.
 const val ADMIN_PANEL_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/sys-x7f3k2/"
 
 @Composable
@@ -54,10 +52,7 @@ fun BootScreen(vm: AppViewModel, nav: NavController) {
         if (s == null) {
             nav.navigate("login") { popUpTo("boot") { inclusive = true } }
         } else {
-            vm.connect(
-                s,
-                onFail = { nav.navigate("login") { popUpTo("boot") { inclusive = true } } }
-            ) {
+            vm.connect(s, onFail = { nav.navigate("login") { popUpTo("boot") { inclusive = true } } }) {
                 nav.navigate(vm.homeRoute) { popUpTo("boot") { inclusive = true } }
             }
         }
@@ -80,22 +75,53 @@ private fun stepKey(step: Int): String = when (step) {
     else -> "connecting"
 }
 
+// Loading step ke mutabiq progress ko har waqt halka halka aagay barhata hai —
+// kabhi bhi "freeze" nahi hota, chahe asal data load hone me kitna bhi waqt lage
+@Composable
+private fun rememberStageProgress(vm: AppViewModel, active: Boolean): MutableState<Float> {
+    val progress = remember { mutableStateOf(0f) }
+    LaunchedEffect(active) {
+        if (!active) { progress.value = 0f; return@LaunchedEffect }
+        progress.value = 0.01f
+        while (isActive) {
+            val target = when (vm.loadingStep) {
+                1 -> 0.45f
+                2 -> 0.75f
+                3 -> 0.97f
+                else -> 0.15f
+            }
+            val cur = progress.value
+            progress.value = if (cur < target)
+                (cur + (target - cur) * 0.08f + 0.004f).coerceAtMost(0.98f)
+            else
+                (cur + 0.0015f).coerceAtMost(0.98f)
+            delay(100)
+        }
+    }
+    return progress
+}
+
+@Composable
+private fun ProgressBarRow(progress: Float) {
+    Spacer(Modifier.height(10.dp))
+    val shape = RoundedCornerShape(50)
+    Box(Modifier.fillMaxWidth().height(6.dp).background(Slate800, shape)) {
+        Box(
+            Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f))
+                .background(Brush.horizontalGradient(listOf(Cyan, Blue)), shape)
+        )
+    }
+}
+
 @Composable
 private fun LoginField(
-    label: String,
-    icon: ImageVector,
-    value: String,
-    onChange: (String) -> Unit,
-    placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    password: Boolean = false
+    label: String, icon: ImageVector, value: String, onChange: (String) -> Unit,
+    placeholder: String, keyboardType: KeyboardType = KeyboardType.Text, password: Boolean = false
 ) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(16.dp)
     Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Slate950.copy(alpha = 0.6f), shape)
+        Modifier.fillMaxWidth().background(Slate950.copy(alpha = 0.6f), shape)
             .border(1.dp, if (focused) NeonCyan else Slate800, shape)
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
@@ -104,9 +130,7 @@ private fun LoginField(
             Icon(icon, null, tint = Cyan, modifier = Modifier.size(12.dp))
             Spacer(Modifier.width(8.dp))
             BasicTextField(
-                value = value,
-                onValueChange = onChange,
-                singleLine = true,
+                value = value, onValueChange = onChange, singleLine = true,
                 textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
                 cursorBrush = SolidColor(Cyan),
                 keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboardType),
@@ -127,12 +151,9 @@ private fun LoginField(
 private fun ModeTab(text: String, icon: ImageVector, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        modifier
-            .background(if (selected) Cyan else Color.Transparent, shape)
-            .tvClick(shape, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        modifier.background(if (selected) Cyan else Color.Transparent, shape)
+            .tvClick(shape, onClick = onClick).padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = if (selected) Slate950 else Slate400, modifier = Modifier.size(12.dp))
         Spacer(Modifier.width(4.dp))
@@ -150,21 +171,8 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
     var notActivatedYet by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
     var copied by remember { mutableStateOf(false) }
-    var progress by remember { mutableStateOf(0f) }
-
-    // Jab tak checking/connect chal raha hai, progress ko khud-ba-khud 1% se ~95% tak
-    // smoothly barhate hain — asal "Checking..." se "Connect" tak poori process
-    // (device check + login + channels load) ka ehsaas dene ke liye.
-    LaunchedEffect(checking, vm.loading) {
-        if (checking || vm.loading) {
-            progress = 0.01f
-            while (isActive && (checking || vm.loading) && progress < 0.95f) {
-                delay(120)
-                val remaining = 0.95f - progress
-                progress += (remaining * 0.06f).coerceAtLeast(0.004f)
-            }
-        }
-    }
+    val busy = checking || vm.loading
+    val progressState = rememberStageProgress(vm, busy)
 
     Column(Modifier.fillMaxWidth()) {
         Txt(tr(lang, "device_id_desc"), 12, Slate300, modifier = Modifier.fillMaxWidth())
@@ -172,13 +180,9 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
 
         val boxShape = RoundedCornerShape(14.dp)
         Row(
-            Modifier
-                .fillMaxWidth()
-                .background(Slate950.copy(alpha = 0.6f), boxShape)
-                .border(1.dp, Slate800, boxShape)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            Modifier.fillMaxWidth().background(Slate950.copy(alpha = 0.6f), boxShape)
+                .border(1.dp, Slate800, boxShape).padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
                 Txt(tr(lang, "device_id_label"), 10, Slate400, FontWeight.Bold, spacing = 0.8f)
@@ -186,10 +190,7 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
             }
             Box(
                 Modifier.size(38.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
-                    .tvClick(RoundedCornerShape(10.dp)) {
-                        clipboard.setText(AnnotatedString(deviceId))
-                        copied = true
-                    },
+                    .tvClick(RoundedCornerShape(10.dp)) { clipboard.setText(AnnotatedString(deviceId)); copied = true },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.ContentCopy, null, tint = if (copied) Emerald else Slate300, modifier = Modifier.size(16.dp))
@@ -201,12 +202,9 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
         }
 
         Spacer(Modifier.height(18.dp))
-        val busy = checking || vm.loading
         val btnShape = RoundedCornerShape(16.dp)
         Box(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp)
+            Modifier.fillMaxWidth().heightIn(min = 52.dp)
                 .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
                 .tvClick(btnShape) {
                     if (!busy) {
@@ -215,19 +213,14 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
                         localError = null
                         scope.launch {
                             val r = withContext(Dispatchers.IO) { checkDeviceActivation(deviceId) }
+                            checking = false
                             if (r.activated && r.host.isNotBlank() && r.user.isNotBlank()) {
                                 val s = Session("xtream", normalizeServer(r.host), r.user, r.pass)
-                                vm.connect(s,
-                                    onFail = { checking = false },
-                                    onSuccess = { progress = 1f; checking = false; onLoggedIn() }
-                                )
+                                vm.connect(s, onFail = {}, onSuccess = { progressState.value = 1f; onLoggedIn() })
+                            } else if (r.error.isNotBlank()) {
+                                localError = r.error
                             } else {
-                                checking = false
-                                if (r.error.isNotBlank()) {
-                                    localError = r.error
-                                } else {
-                                    notActivatedYet = true
-                                }
+                                notActivatedYet = true
                             }
                         }
                     }
@@ -239,27 +232,14 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
-                    Txt("${tr(lang, "device_checking")} ${(progress * 100).toInt()}%", 12, Slate950, FontWeight.Black)
+                    Txt("${tr(lang, "device_checking")} ${(progressState.value * 100).toInt()}%", 12, Slate950, FontWeight.Black)
                 }
             } else {
                 Txt(tr(lang, "device_check_button"), 13, Slate950, FontWeight.Black)
             }
         }
 
-        if (busy) {
-            Spacer(Modifier.height(10.dp))
-            val trackShape = RoundedCornerShape(50)
-            Box(
-                Modifier.fillMaxWidth().height(6.dp).background(Slate800, trackShape)
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress.coerceIn(0f, 1f))
-                        .background(Brush.horizontalGradient(listOf(Cyan, Blue)), trackShape)
-                )
-            }
-        }
+        if (busy) ProgressBarRow(progressState.value)
 
         if (notActivatedYet) {
             Spacer(Modifier.height(12.dp))
@@ -283,44 +263,32 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
     var pass by remember { mutableStateOf("") }
     var m3u by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
-
-    // Hidden admin panel: "Powered by..." text par 21 baar tap karne se khulta hai.
-    // Yeh counter sirf is screen ke andar hai — client ko kahin koi ishara nahi milta.
     var tapCount by remember { mutableStateOf(0) }
+
+    val xtreamProgress = rememberStageProgress(vm, vm.loading && mode == "xtream")
+    val m3uProgress = rememberStageProgress(vm, vm.loading && mode == "m3u")
 
     fun submit() {
         localError = null
         val s: Session
         if (mode == "xtream") {
             if (server.isBlank() || user.isBlank() || pass.isBlank()) {
-                localError = tr(lang, "err_fill_xtream")
-                return
+                localError = tr(lang, "err_fill_xtream"); return
             }
             s = Session("xtream", normalizeServer(server), user.trim(), pass.trim())
         } else {
-            if (m3u.isBlank()) {
-                localError = tr(lang, "err_fill_m3u")
-                return
-            }
+            if (m3u.isBlank()) { localError = tr(lang, "err_fill_m3u"); return }
             s = Session("m3u", m3uUrl = m3u.trim())
         }
-        vm.connect(s) {
-            nav.navigate(vm.homeRoute) { popUpTo("login") { inclusive = true } }
-        }
+        vm.connect(s) { nav.navigate(vm.homeRoute) { popUpTo("login") { inclusive = true } } }
     }
 
     Box(
-        Modifier
-            .fillMaxSize()
-            .background(Brush.radialGradient(listOf(Color(0xFF17233F), Bg), center = Offset(500f, 350f), radius = 1400f)),
+        Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF17233F), Bg), center = Offset(500f, 350f), radius = 1400f)),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier
-                .widthIn(max = 448.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+            Modifier.widthIn(max = 448.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             BigLogo()
@@ -332,8 +300,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
 
             Column(Modifier.fillMaxWidth().glass(RoundedCornerShape(24.dp)).padding(24.dp)) {
                 Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Txt(tr(lang, "select_language"), 11, Slate400, FontWeight.SemiBold)
@@ -342,10 +309,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                 Spacer(Modifier.height(16.dp))
 
                 Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(Slate900.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
-                        .padding(4.dp),
+                    Modifier.fillMaxWidth().background(Slate900.copy(alpha = 0.8f), RoundedCornerShape(16.dp)).padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     ModeTab(tr(lang, "tab_xtream"), Icons.Filled.Person, mode == "xtream", Modifier.weight(1f)) { mode = "xtream" }
@@ -362,12 +326,9 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                         Spacer(Modifier.height(16.dp))
                         LoginField(tr(lang, "label_password"), Icons.Filled.Lock, pass, { pass = it }, "••••••••", password = true)
                         Spacer(Modifier.height(16.dp))
-
                         val btnShape = RoundedCornerShape(16.dp)
                         Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 52.dp)
+                            Modifier.fillMaxWidth().heightIn(min = 52.dp)
                                 .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
                                 .tvClick(btnShape) { if (!vm.loading) submit() }
                                 .padding(horizontal = 12.dp, vertical = 12.dp),
@@ -377,13 +338,14 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(10.dp))
-                                    Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
+                                    Txt("${tr(lang, stepKey(vm.loadingStep))} ${(xtreamProgress.value * 100).toInt()}%", 12, Slate950, FontWeight.Black, spacing = 0.5f)
                                 }
                             } else {
                                 Txt(tr(lang, "btn_connect"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
                             }
                         }
                         if (vm.loading) {
+                            ProgressBarRow(xtreamProgress.value)
                             Spacer(Modifier.height(16.dp))
                             LoadStepsGrid(vm.loadingStep, lang)
                         }
@@ -396,12 +358,9 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                     "m3u" -> {
                         LoginField(tr(lang, "tab_m3u"), Icons.Filled.Link, m3u, { m3u = it }, "https://provider.com/get.php?username=...", KeyboardType.Uri)
                         Spacer(Modifier.height(16.dp))
-
                         val btnShape = RoundedCornerShape(16.dp)
                         Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 52.dp)
+                            Modifier.fillMaxWidth().heightIn(min = 52.dp)
                                 .background(Brush.horizontalGradient(listOf(Cyan, Blue)), btnShape)
                                 .tvClick(btnShape) { if (!vm.loading) submit() }
                                 .padding(horizontal = 12.dp, vertical = 12.dp),
@@ -411,13 +370,14 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     CircularProgressIndicator(color = Slate950, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(10.dp))
-                                    Txt(tr(lang, stepKey(vm.loadingStep)), 12, Slate950, FontWeight.Black, spacing = 0.5f)
+                                    Txt("${tr(lang, stepKey(vm.loadingStep))} ${(m3uProgress.value * 100).toInt()}%", 12, Slate950, FontWeight.Black, spacing = 0.5f)
                                 }
                             } else {
                                 Txt(tr(lang, "btn_loadm3u"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
                             }
                         }
                         if (vm.loading) {
+                            ProgressBarRow(m3uProgress.value)
                             Spacer(Modifier.height(16.dp))
                             LoadStepsGrid(vm.loadingStep, lang)
                         }
@@ -442,10 +402,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                     modifier = Modifier.fillMaxWidth()
                         .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                             tapCount++
-                            if (tapCount >= 21) {
-                                tapCount = 0
-                                uriHandler.openUri(ADMIN_PANEL_URL)
-                            }
+                            if (tapCount >= 21) { tapCount = 0; uriHandler.openUri(ADMIN_PANEL_URL) }
                         },
                     align = TextAlign.Center
                 )
