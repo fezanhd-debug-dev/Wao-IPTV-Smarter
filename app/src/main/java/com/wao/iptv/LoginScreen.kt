@@ -128,13 +128,13 @@ private fun ModeTab(text: String, icon: ImageVector, selected: Boolean, modifier
         modifier
             .background(if (selected) Cyan else Color.Transparent, shape)
             .tvClick(shape, onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(horizontal = 4.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = if (selected) Slate950 else Slate400, modifier = Modifier.size(12.dp))
-        Spacer(Modifier.width(6.dp))
-        Txt(text, 11, if (selected) Slate950 else Slate400, FontWeight.Bold)
+        Spacer(Modifier.width(4.dp))
+        Txt(text, 10, if (selected) Slate950 else Slate400, FontWeight.Bold, maxLines = 1)
     }
 }
 
