@@ -16,11 +16,7 @@ class Store(private val context: Context) {
 
     fun loadSession(): Session? {
         val j = sp.getString("session", null) ?: return null
-        return try {
-            gson.fromJson(j, Session::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        return try { gson.fromJson(j, Session::class.java) } catch (e: Exception) { null }
     }
 
     fun saveSession(s: Session?) {
@@ -42,9 +38,7 @@ class Store(private val context: Context) {
             val s = gson.fromJson(j, AppSettings::class.java) ?: return AppSettings()
             val safeLang = if (s.lang == null || (s.lang as String).isBlank()) "en" else s.lang
             s.copy(lang = safeLang)
-        } catch (e: Exception) {
-            AppSettings()
-        }
+        } catch (e: Exception) { AppSettings() }
     }
 
     fun saveSettings(s: AppSettings) {
@@ -53,11 +47,7 @@ class Store(private val context: Context) {
 
     fun loadHistory(): List<HistoryItem> {
         val j = sp.getString("history", null) ?: return emptyList()
-        return try {
-            gson.fromJson(j, Array<HistoryItem>::class.java).toList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return try { gson.fromJson(j, Array<HistoryItem>::class.java).toList() } catch (e: Exception) { emptyList() }
     }
 
     fun saveHistory(list: List<HistoryItem>) {
@@ -66,11 +56,7 @@ class Store(private val context: Context) {
 
     fun loadAccounts(): List<SavedAccount> {
         val j = sp.getString("accounts", null) ?: return emptyList()
-        return try {
-            gson.fromJson(j, Array<SavedAccount>::class.java).toList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return try { gson.fromJson(j, Array<SavedAccount>::class.java).toList() } catch (e: Exception) { emptyList() }
     }
 
     fun saveAccounts(list: List<SavedAccount>) {
@@ -79,11 +65,7 @@ class Store(private val context: Context) {
 
     fun loadFavorites(): List<FavoriteItem> {
         val j = sp.getString("favorites", null) ?: return emptyList()
-        return try {
-            gson.fromJson(j, Array<FavoriteItem>::class.java).toList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return try { gson.fromJson(j, Array<FavoriteItem>::class.java).toList() } catch (e: Exception) { emptyList() }
     }
 
     fun saveFavorites(list: List<FavoriteItem>) {
@@ -94,23 +76,17 @@ class Store(private val context: Context) {
 
     fun loadSnapshot(accountId: String): ContentSnapshot? {
         val j = sp.getString(snapshotKey(accountId), null) ?: return null
-        return try {
-            gson.fromJson(j, ContentSnapshot::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        return try { gson.fromJson(j, ContentSnapshot::class.java) } catch (e: Exception) { null }
     }
 
     fun saveSnapshot(accountId: String, snap: ContentSnapshot) {
         sp.edit().putString(snapshotKey(accountId), gson.toJson(snap)).apply()
     }
 
-    // ---- Content cache (channels/movies/series) ----
-    // Bohot bade providers (hazaron channels/movies/series) ke liye yeh data ek hi
-    // bade JSON String me badal kar SharedPreferences me rakhna OutOfMemoryError deta
-    // tha (100+ MB tak ka ek hi allocation). Ab yeh seedha file me CHHOTE TUKDON me
-    // stream hota hai — kabhi bhi ek bara allocation nahi banta, is liye crash nahi hota.
-    // Yeh function background thread (Dispatchers.IO) se hi call karein, main thread se nahi.
+    // Device ID ab yahan permanently save hoti hai — jab tak app uninstall na ho,
+    // future updates par bhi yeh kabhi nahi badlegi
+    fun loadDeviceId(): String? = sp.getString("device_uuid", null)
+    fun saveDeviceId(id: String) { sp.edit().putString("device_uuid", id).apply() }
 
     private fun cacheFile(accountId: String): File {
         val safe = accountId.hashCode().toString()
@@ -124,9 +100,7 @@ class Store(private val context: Context) {
             JsonReader(InputStreamReader(FileInputStream(f), Charsets.UTF_8)).use { reader ->
                 gson.fromJson<CachedContent>(reader, CachedContent::class.java)
             }
-        } catch (e: Exception) {
-            null
-        }
+        } catch (e: Exception) { null }
     }
 
     fun saveCache(accountId: String, content: CachedContent) {
@@ -135,9 +109,6 @@ class Store(private val context: Context) {
             JsonWriter(OutputStreamWriter(FileOutputStream(f), Charsets.UTF_8)).use { writer ->
                 gson.toJson(content, CachedContent::class.java, writer)
             }
-        } catch (e: Exception) {
-            // Cache best-effort hai — fail ho to purani corrupt file hata dein
-            f.delete()
-        }
+        } catch (e: Exception) { f.delete() }
     }
 }
