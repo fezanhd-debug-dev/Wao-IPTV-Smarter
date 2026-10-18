@@ -18,6 +18,12 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Cache debug keystore (har build ek jaisi signing key use kare)
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: wao-iptv-debug-keystore-v1
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
