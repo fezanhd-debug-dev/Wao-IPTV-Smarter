@@ -1,5 +1,6 @@
 package com.wao.iptv
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -41,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.exp
 
 const val ADMIN_PANEL_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/sys-x7f3k2/"
 
@@ -75,42 +77,53 @@ private fun stepKey(step: Int): String = when (step) {
     else -> "connecting"
 }
 
-// Loading step ke mutabiq progress ko har waqt halka halka aagay barhata hai —
-// kabhi bhi "freeze" nahi hota, chahe asal data load hone me kitna bhi waqt lage
+// Time-based smooth progress — kabhi "stuck" nahi dikhta, hamesha thoda thoda aagay
+// barhta rahta hai (asymptotic curve, 99% tak pohanch kar wahin dheere dheere inch
+// karta rahega). Jab asal data mil jaye to bahar se 1f set kar dia jata hai —
+// foran 100% ho kar channel list dikhti hai, koi awkward jump nahi.
 @Composable
-private fun rememberStageProgress(vm: AppViewModel, active: Boolean): MutableState<Float> {
+private fun rememberSmoothProgress(active: Boolean): MutableState<Float> {
     val progress = remember { mutableStateOf(0f) }
     LaunchedEffect(active) {
-        if (!active) { progress.value = 0f; return@LaunchedEffect }
+        if (!active) {
+            progress.value = 0f
+            return@LaunchedEffect
+        }
+        val start = System.currentTimeMillis()
         progress.value = 0.01f
         while (isActive) {
-            val target = when (vm.loadingStep) {
-                1 -> 0.45f
-                2 -> 0.75f
-                3 -> 0.97f
-                else -> 0.15f
-            }
-            val cur = progress.value
-            progress.value = if (cur < target)
-                (cur + (target - cur) * 0.08f + 0.004f).coerceAtMost(0.98f)
-            else
-                (cur + 0.0015f).coerceAtMost(0.98f)
-            delay(100)
+            val elapsedSec = (System.currentTimeMillis() - start) / 1000f
+            val target = 0.99f * (1f - exp(-elapsedSec / 4.5f))
+            if (target > progress.value) progress.value = target.coerceAtMost(0.99f)
+            delay(80)
         }
     }
     return progress
 }
 
+private fun progressColor(p: Float): Color = when {
+    p <= 0.25f -> Amber
+    p <= 0.50f -> Color(0xFF38BDF8) // sky blue
+    p <= 0.75f -> Color(0xFF2E8B57) // sea green
+    else -> Emerald
+}
+
 @Composable
-private fun ProgressBarRow(progress: Float) {
+private fun ProgressBarRow(progress: Float, lang: String) {
+    val color by animateColorAsState(progressColor(progress), label = "progressColor")
     Spacer(Modifier.height(10.dp))
     val shape = RoundedCornerShape(50)
     Box(Modifier.fillMaxWidth().height(6.dp).background(Slate800, shape)) {
         Box(
             Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f))
-                .background(Brush.horizontalGradient(listOf(Cyan, Blue)), shape)
+                .background(color, shape)
         )
     }
+    Spacer(Modifier.height(8.dp))
+    Txt(
+        tr(lang, "playlist_loading_wait"), 11, Slate400, FontWeight.Medium,
+        modifier = Modifier.fillMaxWidth(), align = TextAlign.Center
+    )
 }
 
 @Composable
@@ -172,7 +185,7 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
     var localError by remember { mutableStateOf<String?>(null) }
     var copied by remember { mutableStateOf(false) }
     val busy = checking || vm.loading
-    val progressState = rememberStageProgress(vm, busy)
+    val progressState = rememberSmoothProgress(busy)
 
     Column(Modifier.fillMaxWidth()) {
         Txt(tr(lang, "device_id_desc"), 12, Slate300, modifier = Modifier.fillMaxWidth())
@@ -239,7 +252,7 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
             }
         }
 
-        if (busy) ProgressBarRow(progressState.value)
+        if (busy) ProgressBarRow(progressState.value, lang)
 
         if (notActivatedYet) {
             Spacer(Modifier.height(12.dp))
@@ -265,8 +278,8 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
     var localError by remember { mutableStateOf<String?>(null) }
     var tapCount by remember { mutableStateOf(0) }
 
-    val xtreamProgress = rememberStageProgress(vm, vm.loading && mode == "xtream")
-    val m3uProgress = rememberStageProgress(vm, vm.loading && mode == "m3u")
+    val xtreamProgress = rememberSmoothProgress(vm.loading && mode == "xtream")
+    val m3uProgress = rememberSmoothProgress(vm.loading && mode == "m3u")
 
     fun submit() {
         localError = null
@@ -280,7 +293,13 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
             if (m3u.isBlank()) { localError = tr(lang, "err_fill_m3u"); return }
             s = Session("m3u", m3uUrl = m3u.trim())
         }
-        vm.connect(s) { nav.navigate(vm.homeRoute) { popUpTo("login") { inclusive = true } } }
+        vm.connect(s,
+            onFail = {},
+            onSuccess = {
+                if (mode == "xtream") xtreamProgress.value = 1f else m3uProgress.value = 1f
+                nav.navigate(vm.homeRoute) { popUpTo("login") { inclusive = true } }
+            }
+        )
     }
 
     Box(
@@ -344,11 +363,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                                 Txt(tr(lang, "btn_connect"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
                             }
                         }
-                        if (vm.loading) {
-                            ProgressBarRow(xtreamProgress.value)
-                            Spacer(Modifier.height(16.dp))
-                            LoadStepsGrid(vm.loadingStep, lang)
-                        }
+                        if (vm.loading) ProgressBarRow(xtreamProgress.value, lang)
                         val err = localError ?: vm.error
                         if (err != null) {
                             Spacer(Modifier.height(12.dp))
@@ -376,11 +391,7 @@ fun LoginScreen(vm: AppViewModel, nav: NavController) {
                                 Txt(tr(lang, "btn_loadm3u"), 13, Slate950, FontWeight.Black, modifier = Modifier.fillMaxWidth(), spacing = 0.5f, align = TextAlign.Center)
                             }
                         }
-                        if (vm.loading) {
-                            ProgressBarRow(m3uProgress.value)
-                            Spacer(Modifier.height(16.dp))
-                            LoadStepsGrid(vm.loadingStep, lang)
-                        }
+                        if (vm.loading) ProgressBarRow(m3uProgress.value, lang)
                         val err = localError ?: vm.error
                         if (err != null) {
                             Spacer(Modifier.height(12.dp))
