@@ -11,8 +11,8 @@ android {
         applicationId = "com.wao.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "5.1"
+        versionCode = 4
+        versionName = "5.8"
     }
 
     buildTypes {
