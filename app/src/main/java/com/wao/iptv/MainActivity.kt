@@ -7,11 +7,11 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -44,9 +44,8 @@ class MainActivity : ComponentActivity() {
                 var crashText by remember { mutableStateOf(CrashHandler.readAndClear(ctx)) }
                 var forceUpdateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
-                // Force-update check: sirf 2 sharten chahiye — admin ne version.json me
-                // versionCode is build se bara rakha ho (tabhi "Available" aata hai),
-                // aur forceUpdate: true ho. Koi aur alag calculation nahi.
+                // Force-update check: version.json me versionCode is build se bara ho
+                // aur forceUpdate: true ho, to "Update Required" screen turant aa jati hai.
                 LaunchedEffect(Unit) {
                     if (crashText == null) {
                         val result = withContext(Dispatchers.IO) {
@@ -102,3 +101,5 @@ private fun CrashScreen(text: String, onDismiss: () -> Unit) {
         Button(onClick = onDismiss) { Text("Continue") }
     }
 }
+
+private fun ColumnScope.weightDummy() {} // placeholder, not used
