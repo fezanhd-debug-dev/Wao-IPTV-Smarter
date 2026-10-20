@@ -6,7 +6,9 @@ data class UpdateInfo(
     val versionCode: Int,
     val versionName: String,
     val apkUrl: String,
-    val notes: String
+    val notes: String,
+    val forceUpdate: Boolean = false,
+    val minSupportedVersionCode: Int = 0
 )
 
 sealed class UpdateResult {
@@ -16,6 +18,7 @@ sealed class UpdateResult {
 }
 
 const val UPDATE_CHECK_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/version.json"
+
 fun checkForUpdate(currentVersionCode: Int): UpdateResult {
     return try {
         val body = httpGet(UPDATE_CHECK_URL)
@@ -27,9 +30,24 @@ fun checkForUpdate(currentVersionCode: Int): UpdateResult {
             val e = o.get(k)
             return if (e == null || e.isJsonNull) "" else e.asString
         }
+        fun int(k: String): Int {
+            val e = o.get(k)
+            return if (e == null || e.isJsonNull || !e.isJsonPrimitive) 0 else e.asInt
+        }
+        fun bool(k: String): Boolean {
+            val e = o.get(k)
+            return e != null && !e.isJsonNull && e.isJsonPrimitive && e.asBoolean
+        }
 
-        val remoteCode = o.get("versionCode")?.let { if (it.isJsonPrimitive) it.asInt else 0 } ?: 0
-        val info = UpdateInfo(remoteCode, str("versionName"), str("apkUrl"), str("notes"))
+        val remoteCode = int("versionCode")
+        val info = UpdateInfo(
+            versionCode = remoteCode,
+            versionName = str("versionName"),
+            apkUrl = str("apkUrl"),
+            notes = str("notes"),
+            forceUpdate = bool("forceUpdate"),
+            minSupportedVersionCode = int("minSupportedVersionCode")
+        )
 
         if (remoteCode > currentVersionCode) UpdateResult.Available(info) else UpdateResult.UpToDate
     } catch (e: Exception) {
