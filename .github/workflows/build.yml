@@ -24,6 +24,9 @@ jobs:
           path: ~/.android/debug.keystore
           key: wao-iptv-debug-keystore-v1
 
+      - name: Ensure .android folder exists
+        run: mkdir -p ~/.android
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
