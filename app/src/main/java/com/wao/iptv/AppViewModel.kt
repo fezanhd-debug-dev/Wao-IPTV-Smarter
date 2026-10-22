@@ -21,9 +21,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init { currentLang = store.loadSettings().lang }
 
+    val myDeviceId: String by lazy { getDeviceId(getApplication()) }
+
     var session by mutableStateOf<Session?>(store.loadSession())
     var loading by mutableStateOf(false)
-    var loadingStep by mutableStateOf(0) // 0=idle/connecting, 1=live, 2=movies, 3=series
+    var loadingStep by mutableStateOf(0)
     var switching by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var account by mutableStateOf(AccountInfo())
@@ -35,8 +37,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var seriesCats by mutableStateOf<List<Category>>(emptyList())
     var seriesList by mutableStateOf<List<VodItem>>(emptyList())
 
-    // Series ab category-wise lazy load hoti hain — yeh cache batata hai kaunsi
-    // category pehle se load ho chuki hai, taake dobara download na ho
     val seriesByCat = mutableStateMapOf<String, List<VodItem>>()
     var seriesCatLoading by mutableStateOf<String?>(null)
 
@@ -93,21 +93,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleFavoriteChannel(ch: Channel) {
         val key = "live:${ch.id}"
-        favorites = if (favorites.any { it.key == key }) {
-            favorites.filter { it.key != key }
-        } else {
-            favorites + FavoriteItem(key, "live", ch.name, ch.icon)
-        }
+        favorites = if (favorites.any { it.key == key }) favorites.filter { it.key != key }
+        else favorites + FavoriteItem(key, "live", ch.name, ch.icon)
         store.saveFavorites(favorites)
     }
 
     fun toggleFavoriteVod(v: VodItem) {
         val key = (if (v.isSeries) "series:" else "movie:") + v.id
-        favorites = if (favorites.any { it.key == key }) {
-            favorites.filter { it.key != key }
-        } else {
-            favorites + FavoriteItem(key, if (v.isSeries) "series" else "movie", v.name, v.poster)
-        }
+        favorites = if (favorites.any { it.key == key }) favorites.filter { it.key != key }
+        else favorites + FavoriteItem(key, if (v.isSeries) "series" else "movie", v.name, v.poster)
         store.saveFavorites(favorites)
     }
 
@@ -121,21 +115,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return movies.filter { "movie:${it.id}" in keys }
     }
 
-    // Favorite series abhi loaded na bhi ho (uski category load na hui ho), tab bhi
-    // favorite ke apne saved title/poster se dikha dete hain
     fun favoriteSeries(): List<VodItem> {
         val favs = favorites.filter { it.kind == "series" }
         return favs.map { f ->
             val id = f.key.removePrefix("series:")
             seriesList.firstOrNull { it.id == id } ?: VodItem(
-                id = id,
-                name = f.title,
-                poster = f.poster,
-                rating = "",
-                year = "",
-                categoryId = "",
-                ext = "",
-                isSeries = true
+                id = id, name = f.title, poster = f.poster, rating = "", year = "",
+                categoryId = "", ext = "", isSeries = true
             )
         }
     }
@@ -165,10 +151,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (switching || loading) return
         switching = true
         expiryWarningDismissed = false
-        connect(
-            acc.session,
-            onFail = { switching = false; onFail() }
-        ) {
+        connect(acc.session, onFail = { switching = false; onFail() }) {
             switching = false
             onSuccess()
         }
@@ -229,8 +212,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // Cache save/load ab file-streaming use karta hai (Store.kt) jo kabhi bhi ek bara
-    // JSON String nahi banata — is liye yeh hamesha background thread par chalate hain
     private suspend fun saveCacheSafe(accId: String, content: CachedContent) {
         withContext(Dispatchers.IO) { store.saveCache(accId, content) }
     }
@@ -238,8 +219,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun loadCacheSafe(accId: String): CachedContent? =
         withContext(Dispatchers.IO) { store.loadCache(accId) }
 
-    // Ek category ki series lazy-load karta hai — sirf tab chalta hai jab user
-    // us category ko tap kare, taake sab kuch ek sath load na ho (jo crash ki wajah tha)
+    // Sirf asal successful authentication ke baad call hota hai (cache-hit path me
+    // bhi authenticate() pehle chal chuka hota hai) — is liye "Today Successful
+    // Login" ka number hamesha sahi hota hai, app sirf kholne se nahi badhta.
+    private fun logSuccessfulLogin(s: Session) {
+        val label = if (s.type == "xtream") s.username.ifBlank { "Xtream" } else "M3U"
+        viewModelScope.launch(Dispatchers.IO) { logLoginOk(myDeviceId, label) }
+    }
+
     fun loadSeriesCategory(categoryId: String) {
         if (categoryId.isBlank()) return
         if (seriesByCat.containsKey(categoryId)) return
@@ -284,6 +271,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         maybeSaveAccount(s)
                         expiryWarningDismissed = false
                         loading = false
+                        logSuccessfulLogin(s)
                         onSuccess()
                         refreshM3uInBackground(s, accId)
                         return@launch
@@ -318,6 +306,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         maybeSaveAccount(s)
                         expiryWarningDismissed = false
                         loading = false
+                        logSuccessfulLogin(s)
                         onSuccess()
                         refreshXtreamInBackground(s, api, accId)
                         return@launch
@@ -326,29 +315,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     loadingStep = 1
                     var liveErr: Exception? = null
                     val live = withContext(Dispatchers.IO) {
-                        runCatching { api.liveChannels() }
-                            .onFailure { e -> if (e is Exception) liveErr = e }
-                            .getOrDefault(emptyList())
+                        runCatching { api.liveChannels() }.onFailure { e -> if (e is Exception) liveErr = e }.getOrDefault(emptyList())
                     }
-                    liveCats = withContext(Dispatchers.IO) {
-                        runCatching { api.liveCategories() }.getOrDefault(emptyList())
-                    }
+                    liveCats = withContext(Dispatchers.IO) { runCatching { api.liveCategories() }.getOrDefault(emptyList()) }
                     channels = live
 
                     loadingStep = 2
-                    movies = withContext(Dispatchers.IO) {
-                        runCatching { api.movies() }.getOrDefault(emptyList())
-                    }
-                    movieCats = withContext(Dispatchers.IO) {
-                        runCatching { api.movieCategories() }.getOrDefault(emptyList())
-                    }
+                    movies = withContext(Dispatchers.IO) { runCatching { api.movies() }.getOrDefault(emptyList()) }
+                    movieCats = withContext(Dispatchers.IO) { runCatching { api.movieCategories() }.getOrDefault(emptyList()) }
 
-                    // Step 3: SIRF categories load hoti hain — asal series list
-                    // category tap karne par lazy-load hogi (loadSeriesCategory se)
                     loadingStep = 3
-                    seriesCats = withContext(Dispatchers.IO) {
-                        runCatching { api.seriesCategories() }.getOrDefault(emptyList())
-                    }
+                    seriesCats = withContext(Dispatchers.IO) { runCatching { api.seriesCategories() }.getOrDefault(emptyList()) }
                     seriesList = emptyList()
                     seriesByCat.clear()
 
@@ -365,6 +342,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 maybeSaveAccount(s)
                 expiryWarningDismissed = false
                 checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesCats.size))
+                logSuccessfulLogin(s)
                 onSuccess()
             } catch (e: Exception) {
                 error = friendly(e)
@@ -376,8 +354,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // Background refresh bhi ab sirf categories refresh karta hai, poori series
-    // list nahi — taake yeh bhi kabhi hang/crash ka sabab na bane
     private fun refreshXtreamInBackground(s: Session, api: XtreamApi, accId: String) {
         viewModelScope.launch {
             try {
@@ -393,9 +369,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                     checkNewContent(accId, ContentSnapshot(channels.size, movies.size, serC.size))
                 }
-            } catch (e: Exception) {
-                // silent — cached data stays as-is
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -410,9 +384,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     saveCacheSafe(accId, CachedContent(liveCats, channels, movieCats, movies, seriesCats, seriesList, account))
                     checkNewContent(accId, ContentSnapshot(channels.size, movies.size, seriesCats.size))
                 }
-            } catch (e: Exception) {
-                // silent
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -427,12 +399,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun logout() {
         session = null
         store.saveSession(null)
-        liveCats = emptyList()
-        channels = emptyList()
-        movieCats = emptyList()
-        movies = emptyList()
-        seriesCats = emptyList()
-        seriesList = emptyList()
+        liveCats = emptyList(); channels = emptyList()
+        movieCats = emptyList(); movies = emptyList()
+        seriesCats = emptyList(); seriesList = emptyList()
         seriesByCat.clear()
         epg.clear()
         nowPlaying = null
@@ -463,40 +432,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val now = System.currentTimeMillis() / 1000
         val cur = epg[ch.id]?.firstOrNull { now in it.start..it.end }
         nowPlaying = PlayItem(
-            url = liveUrl(s, ch),
-            title = ch.name,
-            subtitle = cur?.title ?: "Live Channel",
-            isLive = true,
-            poster = ch.icon,
-            historyKey = "live:${ch.id}:${ch.num}",
-            channelId = ch.id
+            url = liveUrl(s, ch), title = ch.name, subtitle = cur?.title ?: "Live Channel",
+            isLive = true, poster = ch.icon, historyKey = "live:${ch.id}:${ch.num}", channelId = ch.id
         )
     }
 
     fun playMovie(m: VodItem) {
         val s = session ?: return
+        val key = "movie:${m.id}"
+        val resumePos = history.firstOrNull { it.key == key }?.position ?: 0L
         nowPlaying = PlayItem(
             url = movieUrl(s, m),
             title = m.name,
             subtitle = listOf(m.year, "Movie").filter { it.isNotBlank() }.joinToString(" • "),
-            isLive = false,
-            poster = m.poster,
-            historyKey = "movie:${m.id}",
-            movieId = m.id
+            isLive = false, poster = m.poster, historyKey = key, movieId = m.id,
+            startPosition = resumePos
         )
     }
 
     fun playEpisode(series: VodItem, ep: Episode) {
         val s = session ?: return
+        val key = "ep:${ep.id}"
+        val resumePos = history.firstOrNull { it.key == key }?.position ?: 0L
         nowPlaying = PlayItem(
             url = episodeUrl(s, ep),
             title = "${series.name} • S${ep.season}:E${ep.number}",
-            subtitle = ep.title,
-            isLive = false,
-            poster = series.poster,
-            historyKey = "ep:${ep.id}",
-            seriesId = series.id,
-            episodeId = ep.id
+            subtitle = ep.title, isLive = false, poster = series.poster, historyKey = key,
+            seriesId = series.id, episodeId = ep.id, startPosition = resumePos
         )
     }
 
@@ -523,8 +485,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         store.saveHistory(history)
     }
 
-    // ---- Player: Next / Previous support (live channel, movie, or series episode) ----
-
     fun canGoNext(): Boolean {
         val cur = nowPlaying ?: return false
         return when {
@@ -545,14 +505,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val cur = nowPlaying ?: return false
         return when {
             cur.isLive -> visibleChannels().size > 1
-            cur.seriesId.isNotBlank() -> {
-                val idx = episodes.indexOfFirst { it.id == cur.episodeId }
-                idx > 0
-            }
-            cur.movieId.isNotBlank() -> {
-                val idx = movies.indexOfFirst { it.id == cur.movieId }
-                idx > 0
-            }
+            cur.seriesId.isNotBlank() -> episodes.indexOfFirst { it.id == cur.episodeId } > 0
+            cur.movieId.isNotBlank() -> movies.indexOfFirst { it.id == cur.movieId } > 0
             else -> false
         }
     }
@@ -564,8 +518,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val list = visibleChannels()
                 if (list.isEmpty()) return
                 val idx = list.indexOfFirst { it.id == cur.channelId }
-                val next = if (idx == -1) list.first() else list[(idx + 1) % list.size]
-                playChannel(next)
+                playChannel(if (idx == -1) list.first() else list[(idx + 1) % list.size])
             }
             cur.seriesId.isNotBlank() -> {
                 val series = selectedSeries ?: return
@@ -589,8 +542,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val list = visibleChannels()
                 if (list.isEmpty()) return
                 val idx = list.indexOfFirst { it.id == cur.channelId }
-                val prev = if (idx == -1) list.first() else list[(idx - 1 + list.size) % list.size]
-                playChannel(prev)
+                playChannel(if (idx == -1) list.first() else list[(idx - 1 + list.size) % list.size])
             }
             cur.seriesId.isNotBlank() -> {
                 val series = selectedSeries ?: return
