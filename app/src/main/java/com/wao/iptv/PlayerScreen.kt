@@ -35,7 +35,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 private fun hideSystemBars(activity: Activity?) {
     val window = activity?.window ?: return
@@ -83,6 +86,7 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
     var gestureLabel by remember { mutableStateOf<Pair<String, Int>?>(null) }
 
     val focusRequester = remember { FocusRequester() }
+    val deviceId = remember { vm.myDeviceId }
 
     fun saveHistory() {
         if (durMs > 0 || item.isLive) {
@@ -139,6 +143,24 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
             bufferedPct = player.bufferedPercentage
         }
     }
+
+    // Reseller panel ko har 5 second me batata hai ke yeh device abhi kya dekh raha
+    // hai aur kitni der se — isi se "Now Watching" aur "LIVE NOW" badge, dono update
+    // hote hain. Position second me bheji jati hai.
+    LaunchedEffect(item.url) {
+        val kind = when {
+            item.isLive -> "live"
+            item.seriesId.isNotBlank() -> "series"
+            else -> "movie"
+        }
+        while (isActive) {
+            withContext(Dispatchers.IO) {
+                sendHeartbeat(deviceId, item.title, kind, item.url, posMs / 1000)
+            }
+            delay(5000)
+        }
+    }
+
     LaunchedEffect(showControls, playing) {
         if (showControls && playing) {
             delay(4000)
