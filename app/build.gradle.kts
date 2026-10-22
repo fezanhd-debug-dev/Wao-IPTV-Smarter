@@ -11,13 +11,23 @@ android {
         applicationId = "com.wao.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4
-        versionName = "5.8"
+        versionCode = 5
+        versionName = "5.9"
     }
 
     buildTypes {
+        debug {
+            // Debug APK hi ship hoti hai (build.yml me assembleDebug), is liye
+            // security hardening isi build type par lagani zaroori hai
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
