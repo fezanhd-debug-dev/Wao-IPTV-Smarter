@@ -1,179 +1,327 @@
 package com.wao.iptv
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.Icon
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import kotlinx.coroutines.delay
+
+private enum class TvSection { LIVE, MOVIES, SERIES, SETTINGS }
 
 @Composable
-private fun TvRailIcon(
+private fun TvSideButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    active: Boolean,
-    focusRequester: FocusRequester? = null,
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    Box(
-        Modifier
-            .size(48.dp)
-            .background(if (active) Cyan else Slate900, shape)
-            .tvClick(shape, focusRequester = focusRequester, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) { Icon(icon, null, tint = if (active) Slate950 else Slate400, modifier = Modifier.size(20.dp)) }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(
+                when {
+                    focused -> Cyan
+                    selected -> Slate800
+                    else -> Color.Transparent
+                },
+                shape
+            )
+            .border(if (focused) 2.dp else 0.dp, Color.White.copy(alpha = 0.6f), shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .onKeyEvent { e ->
+                if (e.type == KeyEventType.KeyDown &&
+                    (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER)
+                ) { onClick(); true } else false
+            }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = if (focused) Slate950 else if (selected) Cyan else Slate400, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(14.dp))
+        Txt(label, 14, if (focused) Slate950 else if (selected) Color.White else Slate400, FontWeight.Bold)
+    }
 }
 
 @Composable
-private fun TvChannelCard(
-    ch: Channel,
-    fav: Boolean,
-    focusRequester: FocusRequester? = null,
-    onClick: () -> Unit,
-    onToggleFav: () -> Unit
-) {
-    val shape = RoundedCornerShape(16.dp)
-    Column(
-        Modifier.width(240.dp).background(Slate900.copy(alpha = 0.8f), shape).border(1.dp, Slate800, shape)
-            .tvClick(shape, focusRequester = focusRequester, onClick = onClick)
-            .padding(10.dp)
+private fun TvCategoryChip(name: String, selected: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        Modifier
+            .background(if (focused) Cyan else if (selected) Slate800 else Slate900, shape)
+            .border(if (focused) 2.dp else 1.dp, if (focused) Color.White else Slate700, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .onKeyEvent { e ->
+                if (e.type == KeyEventType.KeyDown &&
+                    (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER)
+                ) { onClick(); true } else false
+            }
+            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)).background(Slate800)) {
-            AsyncImage(model = ch.icon, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-            Pill("LIVE", Red, Color.White, Modifier.align(Alignment.TopStart).padding(6.dp))
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .size(24.dp)
-                    .background(Color(0xB3000000), androidx.compose.foundation.shape.CircleShape)
-                    .clickable(onClick = onToggleFav),
-                contentAlignment = Alignment.Center
-            ) {
+        Txt(name, 13, if (focused) Slate950 else if (selected) Color.White else Slate400, FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun TvChannelCard(ch: Channel, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        Modifier
+            .width(170.dp)
+            .background(if (focused) Cyan.copy(alpha = 0.15f) else Slate900, shape)
+            .border(if (focused) 3.dp else 1.dp, if (focused) Cyan else Slate800, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .onKeyEvent { e ->
+                if (e.type == KeyEventType.KeyDown &&
+                    (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER)
+                ) { onClick(); true } else false
+            }
+            .padding(12.dp)
+    ) {
+        Box(
+            Modifier.fillMaxWidth().height(90.dp).clip(RoundedCornerShape(10.dp))
+                .background(Slate950),
+            contentAlignment = Alignment.Center
+        ) {
+            if (ch.icon.isNotBlank()) {
+                AsyncImage(model = ch.icon, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            } else {
+                Icon(Icons.Filled.LiveTv, null, tint = Slate600, modifier = Modifier.size(32.dp))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Txt(ch.name, 12, if (focused) Color.White else Slate300, FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+@Composable
+private fun TvVodCard(v: VodItem, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        Modifier
+            .width(140.dp)
+            .background(if (focused) Cyan.copy(alpha = 0.15f) else Color.Transparent, shape)
+            .border(if (focused) 3.dp else 0.dp, if (focused) Cyan else Color.Transparent, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .onKeyEvent { e ->
+                if (e.type == KeyEventType.KeyDown &&
+                    (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER)
+                ) { onClick(); true } else false
+            }
+            .padding(6.dp)
+    ) {
+        Box(
+            Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(10.dp)).background(Slate900)
+        ) {
+            if (v.poster.isNotBlank()) {
+                AsyncImage(model = v.poster, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
                 Icon(
-                    if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    null, tint = if (fav) RedSoft else Color.White, modifier = Modifier.size(13.dp)
+                    if (v.isSeries) Icons.Filled.Theaters else Icons.Filled.Movie,
+                    null, tint = Slate600, modifier = Modifier.size(32.dp).align(Alignment.Center)
                 )
             }
         }
-        Txt(ch.name, 14, Color.White, FontWeight.Bold, Modifier.padding(top = 6.dp), maxLines = 1)
+        Spacer(Modifier.height(6.dp))
+        Txt(v.name, 11, if (focused) Color.White else Slate300, FontWeight.SemiBold, maxLines = 2)
     }
 }
 
 @Composable
 fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
-    val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
-    val favChannels = remember(vm.favorites, all) { vm.favoriteChannels() }
-    val hero = all.firstOrNull()
+    var section by remember { mutableStateOf(TvSection.LIVE) }
+    var selectedCatId by remember { mutableStateOf<String?>(null) }
+    val focusRequester = remember { FocusRequester() }
 
-    val homeFocus = remember { FocusRequester() }
-    val firstFavFocus = remember { FocusRequester() }
-    val firstAllFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        delay(150)
-        runCatching { homeFocus.requestFocus() }
+    LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
+
+    val cats = when (section) {
+        TvSection.LIVE -> vm.liveCats
+        TvSection.MOVIES -> vm.movieCats
+        TvSection.SERIES -> vm.seriesCats
+        TvSection.SETTINGS -> emptyList()
     }
 
-    Row(Modifier.fillMaxSize().background(TvBg)) {
+    LaunchedEffect(section, cats) {
+        if (cats.isNotEmpty() && (selectedCatId == null || cats.none { it.id == selectedCatId })) {
+            selectedCatId = cats.first().id
+        }
+        if (section == TvSection.SERIES && selectedCatId != null) {
+            vm.loadSeriesCategory(selectedCatId!!)
+        }
+    }
+
+    Row(Modifier.fillMaxSize().background(Bg)) {
+        // Left sidebar — permanent, D-pad navigable
         Column(
-            Modifier.width(96.dp).fillMaxHeight().background(Bg).padding(vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            Modifier.width(230.dp).fillMaxHeight().background(Slate950).padding(16.dp)
         ) {
-            Box(Modifier.size(48.dp).background(Cyan, RoundedCornerShape(20.dp)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.PlayArrow, null, tint = Slate950, modifier = Modifier.size(24.dp))
+            BigLogo()
+            Spacer(Modifier.height(28.dp))
+            TvSideButton(Icons.Filled.LiveTv, "Live TV", section == TvSection.LIVE) { section = TvSection.LIVE; selectedCatId = null }
+            Spacer(Modifier.height(10.dp))
+            TvSideButton(Icons.Filled.Movie, "Movies", section == TvSection.MOVIES) { section = TvSection.MOVIES; selectedCatId = null }
+            Spacer(Modifier.height(10.dp))
+            TvSideButton(Icons.Filled.Theaters, "Series", section == TvSection.SERIES) { section = TvSection.SERIES; selectedCatId = null }
+            Spacer(Modifier.height(10.dp))
+            TvSideButton(Icons.Filled.Settings, "Settings", section == TvSection.SETTINGS) {
+                nav.navigate("settings")
             }
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                TvRailIcon(Icons.Filled.Home, true, homeFocus) {}
-                TvRailIcon(Icons.Filled.GridView, false) { nav.navigate("tv_quad") }
-                TvRailIcon(Icons.Filled.Movie, false) { nav.navigate("vod") }
-                TvRailIcon(Icons.Filled.Settings, false) { nav.navigate("settings") }
-            }
-            Txt("16:9 TV", 10, Slate500, FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            Txt(tr(vm.settings.lang, "powered_by"), 10, Slate600, modifier = Modifier.fillMaxWidth())
         }
 
-        Column(Modifier.weight(1f).padding(32.dp).verticalScroll(rememberScrollState())) {
-            if (hero != null) {
-                val shape = RoundedCornerShape(24.dp)
-                Box(Modifier.fillMaxWidth().aspectRatio(21f / 9f).clip(shape).background(Slate900)) {
-                    AsyncImage(model = hero.icon, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(48.dp))
-                    Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Transparent, TvBg))))
-                    Column(Modifier.align(Alignment.BottomStart).padding(32.dp)) {
-                        Pill("FEATURED", Cyan, Slate950)
-                        Txt(hero.name, 34, Color.White, FontWeight.Black, Modifier.padding(top = 8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val btn = RoundedCornerShape(12.dp)
-                            Row(
-                                Modifier.padding(top = 16.dp).background(Cyan, btn)
-                                    .tvClick(btn) { vm.playChannel(hero); nav.navigate("player") }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Filled.PlayArrow, null, tint = Slate950, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Txt("Watch Now", 14, Slate950, FontWeight.Bold)
+        // Main content
+        Column(Modifier.weight(1f).fillMaxHeight().padding(20.dp).focusRequester(focusRequester).focusable()) {
+            if (cats.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(cats) { c ->
+                        TvCategoryChip(c.name, c.id == selectedCatId) { selectedCatId = c.id }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
+            when (section) {
+                TvSection.LIVE -> {
+                    val list = vm.visibleChannels().filter { selectedCatId == null || it.categoryId == selectedCatId }
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(170.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(list) { ch ->
+                            TvChannelCard(ch) {
+                                vm.playChannel(ch)
+                                nav.navigate("player")
                             }
-                            Spacer(Modifier.width(12.dp))
-                            Box(Modifier.padding(top = 16.dp)) {
-                                FavButton(vm.isFavorite("live:${hero.id}"), size = 44.dp) {
-                                    vm.toggleFavoriteChannel(hero)
+                        }
+                    }
+                }
+                TvSection.MOVIES -> {
+                    val list = vm.movies.filter { selectedCatId == null || it.categoryId == selectedCatId }
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(140.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(list) { m ->
+                            TvVodCard(m) {
+                                vm.playMovie(m)
+                                nav.navigate("player")
+                            }
+                        }
+                    }
+                }
+                TvSection.SERIES -> {
+                    val list = selectedCatId?.let { vm.seriesByCat[it] } ?: emptyList()
+                    if (vm.seriesCatLoading == selectedCatId) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Cyan)
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(140.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(list) { s ->
+                                TvVodCard(s) {
+                                    vm.openSeries(s)
+                                    nav.navigate("tv_series_detail")
                                 }
                             }
                         }
                     }
                 }
+                TvSection.SETTINGS -> {}
             }
+        }
+    }
+}
 
-            if (favChannels.isNotEmpty()) {
-                Spacer(Modifier.height(28.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Favorite, null, tint = RedSoft, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Txt("MY FAVORITES", 14, Slate400, FontWeight.Bold, spacing = 1f)
-                }
-                Spacer(Modifier.height(16.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    itemsIndexed(favChannels, key = { _, ch -> "fav-${ch.id}" }) { i, ch ->
-                        TvChannelCard(
-                            ch, true,
-                            focusRequester = if (i == 0) firstFavFocus else null,
-                            onClick = { vm.playChannel(ch); nav.navigate("player") },
-                            onToggleFav = { vm.toggleFavoriteChannel(ch) }
-                        )
+@Composable
+fun TvSeriesDetailScreen(vm: AppViewModel, nav: NavController) {
+    val series = vm.selectedSeries ?: run { nav.popBackStack(); return }
+    Column(Modifier.fillMaxSize().background(Bg).padding(24.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            var backFocused by remember { mutableStateOf(false) }
+            Box(
+                Modifier.size(44.dp).background(if (backFocused) Cyan else Slate900, CircleShape)
+                    .onFocusChanged { backFocused = it.isFocused }.focusable()
+                    .onKeyEvent { e ->
+                        if (e.type == KeyEventType.KeyDown && e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER) {
+                            nav.popBackStack(); true
+                        } else false
+                    },
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Filled.ArrowBack, null, tint = if (backFocused) Slate950 else Color.White) }
+            Spacer(Modifier.width(16.dp))
+            Txt(series.name, 22, Color.White, FontWeight.Black)
+        }
+        Spacer(Modifier.height(24.dp))
+        if (vm.episodesLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Cyan) }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(vm.episodes) { ep ->
+                    var f by remember { mutableStateOf(false) }
+                    val shape = RoundedCornerShape(12.dp)
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .background(if (f) Cyan else Slate900, shape)
+                            .border(if (f) 2.dp else 1.dp, if (f) Color.White else Slate800, shape)
+                            .onFocusChanged { f = it.isFocused }.focusable()
+                            .onKeyEvent { e ->
+                                if (e.type == KeyEventType.KeyDown && e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER) {
+                                    vm.playEpisode(series, ep); nav.navigate("player"); true
+                                } else false
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.PlayCircle, null, tint = if (f) Slate950 else Cyan, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column {
+                            Txt("S${ep.season}:E${ep.number} — ${ep.title}", 13, if (f) Slate950 else Color.White, FontWeight.Bold)
+                        }
                     }
-                }
-            }
-
-            Spacer(Modifier.height(28.dp))
-            Txt("Live Channels (D-Pad Select)", 14, Slate400, FontWeight.Bold, spacing = 1f)
-            Spacer(Modifier.height(16.dp))
-            val liveList = all.take(30)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                itemsIndexed(liveList, key = { _, ch -> "all-${ch.id}" }) { i, ch ->
-                    TvChannelCard(
-                        ch, vm.isFavorite("live:${ch.id}"),
-                        focusRequester = if (i == 0 && favChannels.isEmpty()) firstAllFocus else null,
-                        onClick = { vm.playChannel(ch); nav.navigate("player") },
-                        onToggleFav = { vm.toggleFavoriteChannel(ch) }
-                    )
                 }
             }
         }
@@ -182,87 +330,8 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
 
 @Composable
 fun TvQuadViewScreen(vm: AppViewModel, nav: NavController) {
-    val ctx = LocalContext.current
-    val all = remember(vm.channels, vm.lockActive) { vm.visibleChannels() }
-    var slots by remember { mutableStateOf(all.take(4)) }
-    var focus by remember { mutableStateOf(0) }
-    val session = vm.session
-
-    val firstTileFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        delay(150)
-        runCatching { firstTileFocus.requestFocus() }
-    }
-
-    val players = remember { List(4) { buildPlayer(ctx, 0) } }
-    DisposableEffect(Unit) { onDispose { players.forEach { it.release() } } }
-    LaunchedEffect(slots, session) {
-        players.forEachIndexed { i, p ->
-            p.volume = if (i == focus) 1f else 0f
-            val ch = slots.getOrNull(i)
-            if (ch != null && session != null) {
-                delay(150L * i)
-                p.setMediaItem(androidx.media3.common.MediaItem.fromUri(liveUrl(session, ch)))
-                p.prepare()
-                p.playWhenReady = true
-            }
-        }
-    }
-    LaunchedEffect(focus) { players.forEachIndexed { i, p -> p.volume = if (i == focus) 1f else 0f } }
-
-    Column(Modifier.fillMaxSize().background(TvBg).padding(12.dp)) {
-        Row(
-            Modifier.fillMaxWidth().background(Slate900.copy(alpha = 0.8f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val shape = RoundedCornerShape(8.dp)
-                Txt(
-                    "← Exit", 11, Color.White, FontWeight.Bold,
-                    modifier = Modifier.background(Color(0x1AFFFFFF), shape).tvClick(shape) { nav.popBackStack() }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Txt("Multi-Screen Quad Matrix", 12, Color.White, FontWeight.Bold)
-            }
-            Txt("Audio Focus: Slot ${focus + 1}", 11, Cyan, FontWeight.Bold)
-        }
-        Spacer(Modifier.height(10.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            for (row in 0..1) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    for (col in 0..1) {
-                        val i = row * 2 + col
-                        val ch = slots.getOrNull(i)
-                        val shape = RoundedCornerShape(16.dp)
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clip(shape)
-                                .background(Color.Black)
-                                .then(if (i == focus) Modifier.border(3.dp, NeonCyan, shape) else Modifier.border(1.dp, Slate800, shape))
-                                .tvClick(shape, focusRequester = if (i == 0) firstTileFocus else null) { focus = i }
-                        ) {
-                            VideoSurface(players[i], AspectRatioFrameLayout.RESIZE_MODE_ZOOM, Modifier.fillMaxSize())
-                            Row(Modifier.align(Alignment.TopStart).padding(10.dp)) {
-                                Pill("SLOT ${i + 1}", if (i == focus) Cyan else Slate800, if (i == focus) Slate950 else Slate300)
-                                Spacer(Modifier.width(6.dp))
-                                if (ch != null) Pill("LIVE", Red, Color.White)
-                            }
-                            if (ch != null) {
-                                Txt(
-                                    ch.name, 11, Color.White, FontWeight.Bold,
-                                    modifier = Modifier.align(Alignment.BottomStart).padding(10.dp)
-                                        .background(Color(0xB3000000), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    // Placeholder retained for nav-graph compatibility
+    Box(Modifier.fillMaxSize().background(Bg), contentAlignment = Alignment.Center) {
+        Txt("Quad View", 16, Slate400)
     }
 }
