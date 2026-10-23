@@ -7,7 +7,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -44,8 +43,6 @@ class MainActivity : ComponentActivity() {
                 var crashText by remember { mutableStateOf(CrashHandler.readAndClear(ctx)) }
                 var forceUpdateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
-                // Force-update check: version.json me versionCode is build se bara ho
-                // aur forceUpdate: true ho, to "Update Required" screen turant aa jati hai.
                 LaunchedEffect(Unit) {
                     if (crashText == null) {
                         val result = withContext(Dispatchers.IO) {
@@ -74,6 +71,7 @@ class MainActivity : ComponentActivity() {
                             composable("settings") { SettingsScreen(vm, nav) }
                             composable("player") { PlayerScreen(vm, nav) }
                             composable("tv_home") { TvHomeScreen(vm, nav) }
+                            composable("tv_series_detail") { TvSeriesDetailScreen(vm, nav) }
                             composable("tv_quad") { TvQuadViewScreen(vm, nav) }
                         }
                     }
@@ -89,9 +87,7 @@ class MainActivity : ComponentActivity() {
 
 @androidx.compose.runtime.Composable
 private fun CrashScreen(text: String, onDismiss: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().background(Color(0xFF0A0E1A)).padding(16.dp)
-    ) {
+    Column(Modifier.fillMaxSize().background(Color(0xFF0A0E1A)).padding(16.dp)) {
         Text("App crash ho gayi thi. Yeh error neeche hai — screenshot karke bhej dein.", color = Color.White)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -101,5 +97,3 @@ private fun CrashScreen(text: String, onDismiss: () -> Unit) {
         Button(onClick = onDismiss) { Text("Continue") }
     }
 }
-
-private fun ColumnScope.weightDummy() {} // placeholder, not used
