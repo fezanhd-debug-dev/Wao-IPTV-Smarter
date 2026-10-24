@@ -3,6 +3,7 @@ package com.wao.iptv
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,6 +31,10 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 
 private enum class TvSection { LIVE, MOVIES, SERIES, SETTINGS }
+
+// Yeh file ka apna local color hai — PlayerScreen.kt wala Slate600() private hai,
+// yahan access nahi hota, is liye alag se define kiya
+private val TvSlateMuted = Color(0xFF475569)
 
 @Composable
 private fun TvSideButton(
@@ -119,7 +124,7 @@ private fun TvChannelCard(ch: Channel, onClick: () -> Unit) {
             if (ch.icon.isNotBlank()) {
                 AsyncImage(model = ch.icon, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             } else {
-                Icon(Icons.Filled.LiveTv, null, tint = Slate600, modifier = Modifier.size(32.dp))
+                Icon(Icons.Filled.LiveTv, null, tint = TvSlateMuted, modifier = Modifier.size(32.dp))
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -154,7 +159,7 @@ private fun TvVodCard(v: VodItem, onClick: () -> Unit) {
             } else {
                 Icon(
                     if (v.isSeries) Icons.Filled.Theaters else Icons.Filled.Movie,
-                    null, tint = Slate600, modifier = Modifier.size(32.dp).align(Alignment.Center)
+                    null, tint = TvSlateMuted, modifier = Modifier.size(32.dp).align(Alignment.Center)
                 )
             }
         }
