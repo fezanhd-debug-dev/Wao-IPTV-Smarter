@@ -32,9 +32,10 @@ import coil.compose.AsyncImage
 
 private enum class TvSection { LIVE, MOVIES, SERIES, SETTINGS }
 
-// Yeh file ka apna local color hai — PlayerScreen.kt wala Slate600() private hai,
-// yahan access nahi hota, is liye alag se define kiya
+// Yeh file ke apne local colors hain — PlayerScreen.kt wala Slate600() private hai,
+// yahan access nahi hota, is liye alag se define kiye
 private val TvSlateMuted = Color(0xFF475569)
+private val TvFooterMuted = Color(0xFF475569)
 
 @Composable
 private fun TvSideButton(
@@ -209,7 +210,7 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
                 nav.navigate("settings")
             }
             Spacer(Modifier.weight(1f))
-            Txt(tr(vm.settings.lang, "powered_by"), 10, Slate600, modifier = Modifier.fillMaxWidth())
+            Txt(tr(vm.settings.lang, "powered_by"), 10, TvFooterMuted, modifier = Modifier.fillMaxWidth())
         }
 
         // Main content
