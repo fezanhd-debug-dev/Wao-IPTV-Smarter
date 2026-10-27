@@ -11,23 +11,21 @@ android {
         applicationId = "com.wao.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 5
-        versionName = "5.9"
+        versionCode = 8
+        versionName = "6.2"
     }
 
     buildTypes {
         debug {
-            // Debug APK hi ship hoti hai (build.yml me assembleDebug), is liye
-            // security hardening isi build type par lagani zaroori hai
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Minify/shrink BAND — yehi 19MB → 3.5MB wale masle ki asal wajah thi.
+            // Ab se APK poori (19MB ke qareeb) banegi aur signing-key bhi hamesha
+            // stable rahegi (keystore cache se).
+            isMinifyEnabled = false
+            isShrinkResources = false
             isDebuggable = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = false
         }
     }
 
