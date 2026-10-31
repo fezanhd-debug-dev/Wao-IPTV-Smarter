@@ -48,19 +48,23 @@ private fun isConfirm(e: KeyEvent): Boolean =
         e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
         e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
 
+// MENU / INFO / Yellow button se favorite on-off
+private fun isFavKey(e: KeyEvent): Boolean =
+    e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_MENU ||
+        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_INFO ||
+        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_PROG_YELLOW
+
 private fun FocusRequester.go() { runCatching { requestFocus() } }
 
 private fun Modifier.optReq(r: FocusRequester, on: Boolean): Modifier =
     if (on) this.focusRequester(r) else this
 
-// OK/Enter dabane par action (sirf pehli dafa, repeat par nahi)
 private fun Modifier.onConfirm(action: () -> Unit): Modifier = this.onKeyEvent { e ->
     if (e.type == KeyEventType.KeyDown && isConfirm(e) && e.nativeKeyEvent.repeatCount == 0) {
         action(); true
     } else false
 }
 
-// D-pad ki direction par apna rasta (focus khud pakda jata hai, geometry par bharosa nahi)
 private fun Modifier.keyNav(
     left: (() -> Unit)? = null,
     right: (() -> Unit)? = null,
@@ -186,7 +190,8 @@ private fun TvChannelCard(
             .focusable()
             .keyNav(left = onLeft)
             .onKeyEvent { e ->
-                if (!isConfirm(e)) false
+                if (e.type == KeyEventType.KeyDown && isFavKey(e)) { onToggleFavorite(); true }
+                else if (!isConfirm(e)) false
                 else when (e.type) {
                     KeyEventType.KeyDown -> {
                         if (e.nativeKeyEvent.repeatCount >= 8 && !longDone) { longDone = true; onToggleFavorite() }
@@ -216,7 +221,7 @@ private fun TvChannelCard(
         }
         Spacer(Modifier.height(8.dp))
         Txt(ch.name, 12, if (focused) Color.White else Slate300, FontWeight.SemiBold, maxLines = 1)
-        if (focused) Txt("OK: play  |  Hold OK: favorite", 9, Slate500, maxLines = 1)
+        if (focused) Txt("OK: play  |  MENU: favorite", 9, Slate500, maxLines = 1)
     }
 }
 
@@ -240,7 +245,8 @@ private fun TvVodCard(
             .focusable()
             .keyNav(left = onLeft)
             .onKeyEvent { e ->
-                if (!isConfirm(e)) false
+                if (e.type == KeyEventType.KeyDown && isFavKey(e)) { onToggleFavorite(); true }
+                else if (!isConfirm(e)) false
                 else when (e.type) {
                     KeyEventType.KeyDown -> {
                         if (e.nativeKeyEvent.repeatCount >= 8 && !longDone) { longDone = true; onToggleFavorite() }
@@ -420,9 +426,9 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
     var selectedCatId by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
 
-    val sideEntry = remember { FocusRequester() }   // sidebar ka selected button
-    val chipEntry = remember { FocusRequester() }   // pehli category chip
-    val gridEntry = remember { FocusRequester() }   // pehla card / pehli settings row
+    val sideEntry = remember { FocusRequester() }
+    val chipEntry = remember { FocusRequester() }
+    val gridEntry = remember { FocusRequester() }
 
     val cats = when (section) {
         TvSection.LIVE -> vm.liveCats
@@ -485,7 +491,6 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
         }
 
         BoxWithConstraints(Modifier.weight(1f).fillMaxHeight().padding(16.dp)) {
-            // Screen ki chaurai ke hisab se columns khud tay hote hain (har resolution ke liye)
             val chCols = (maxWidth / 180.dp).toInt().coerceAtLeast(2)
             val vodCols = (maxWidth / 150.dp).toInt().coerceAtLeast(2)
 
@@ -504,7 +509,7 @@ fun TvHomeScreen(vm: AppViewModel, nav: NavController) {
                         }
                         if (favChannels.isEmpty() && favMovies.isEmpty() && favSeries.isEmpty()) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Txt("Abhi koi favorite nahi hai. Kisi channel ya movie par OK button der tak dabayen.", 13, Slate500)
+                                Txt("Abhi koi favorite nahi hai. Kisi channel, movie ya series par remote ka MENU button dabayen.", 13, Slate500)
                             }
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
