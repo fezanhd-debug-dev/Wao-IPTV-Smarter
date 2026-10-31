@@ -480,6 +480,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+        // ---- Player se current channel/movie/series ko favorite karna ----
+    private fun currentFavKey(c: PlayItem): String = when {
+        c.isLive -> "live:${c.channelId}"
+        c.seriesId.isNotBlank() -> "series:${c.seriesId}"
+        else -> "movie:${c.movieId}"
+    }
+
+    fun isCurrentFavorite(): Boolean {
+        val c = nowPlaying ?: return false
+        return isFavorite(currentFavKey(c))
+    }
+
+    fun toggleFavoriteCurrent() {
+        val c = nowPlaying ?: return
+        when {
+            c.isLive -> channels.firstOrNull { it.id == c.channelId }?.let { toggleFavoriteChannel(it) }
+            c.seriesId.isNotBlank() -> (selectedSeries?.takeIf { it.id == c.seriesId }
+                ?: seriesList.firstOrNull { it.id == c.seriesId })?.let { toggleFavoriteVod(it) }
+            else -> movies.firstOrNull { it.id == c.movieId }?.let { toggleFavoriteVod(it) }
+        }
+    }
     fun recordHistory(h: HistoryItem) {
         history = (listOf(h) + history.filter { it.key != h.key }).take(10)
         store.saveHistory(history)
