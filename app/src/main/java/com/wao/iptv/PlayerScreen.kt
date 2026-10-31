@@ -248,6 +248,10 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                         gestureLabel = "${(volume * 100).toInt()}%" to 2
                         true
                     }
+
+                                        KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_PROG_YELLOW -> {
+                        vm.toggleFavoriteCurrent(); showControls = true; true
+                    }
                     KeyEvent.KEYCODE_BACK -> {
                         saveHistory(); nav.popBackStack(); true
                     }
@@ -340,6 +344,20 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+
+                                                    Box(
+                            Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+                                .clickable { vm.toggleFavoriteCurrent() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (vm.isCurrentFavorite()) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                null,
+                                tint = if (vm.isCurrentFavorite()) Red else Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
                                 .clickable { toggleLandscape() },
                             contentAlignment = Alignment.Center
                         ) {
