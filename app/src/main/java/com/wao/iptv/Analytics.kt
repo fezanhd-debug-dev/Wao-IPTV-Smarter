@@ -6,22 +6,23 @@ const val ACTIVITY_LOG_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/sy
 
 private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
-// Sirf tab call hota hai jab Xtream server ne asal me login/authenticate successful
-// kiya ho — app khulna ya screen dikhna is me shamil nahi, isi liye "Today Successful
-// Login" ka number bharosemand hota hai.
+// Sirf asal successful Xtream login par: reseller panel ka "Today Successful Logins" isi se barhta hai
 fun logLoginOk(deviceId: String, label: String) {
     try {
         httpGet("$ACTIVITY_LOG_URL?id=${enc(deviceId)}&type=login_ok&title=${enc(label)}")
-    } catch (e: Exception) { /* best-effort */ }
+    } catch (e: Exception) { }
 }
 
-// Har kuch second me player se bheja jata hai — isi se reseller panel "Now Watching"
-// aur "LIVE NOW" badge (saath me video preview) dikhata hai
-fun sendHeartbeat(deviceId: String, title: String, kind: String, url: String, positionSec: Long) {
+// Channel / movie / episode play shuru hone par ek dafa: reseller panel ki History me entry
+fun logWatchStart(deviceId: String, title: String, kind: String) {
     try {
-        httpGet(
-            "$ACTIVITY_LOG_URL?id=${enc(deviceId)}&type=heartbeat&title=${enc(title)}" +
-                "&kind=${enc(kind)}&url=${enc(url)}&position=$positionSec"
-        )
-    } catch (e: Exception) { /* best-effort */ }
+        httpGet("$ACTIVITY_LOG_URL?id=${enc(deviceId)}&type=watch_start&title=${enc(title)}&kind=${enc(kind)}")
+    } catch (e: Exception) { }
+}
+
+// Har 5 second: LIVE NOW status aur kitni der se dekh raha hai
+fun sendHeartbeat(deviceId: String, title: String, kind: String, positionSec: Long) {
+    try {
+        httpGet("$ACTIVITY_LOG_URL?id=${enc(deviceId)}&type=heartbeat&title=${enc(title)}&kind=${enc(kind)}&position=$positionSec")
+    } catch (e: Exception) { }
 }
