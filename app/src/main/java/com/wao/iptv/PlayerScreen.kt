@@ -55,6 +55,22 @@ private fun showSystemBars(activity: Activity?) {
     controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 }
 
+// Player se favorite: jo chal raha hai (channel / movie / series) uski key
+private fun favKeyOf(c: PlayItem): String = when {
+    c.isLive -> "live:${c.channelId}"
+    c.seriesId.isNotBlank() -> "series:${c.seriesId}"
+    else -> "movie:${c.movieId}"
+}
+
+private fun toggleFavForCurrent(vm: AppViewModel, c: PlayItem) {
+    when {
+        c.isLive -> vm.channels.firstOrNull { it.id == c.channelId }?.let { vm.toggleFavoriteChannel(it) }
+        c.seriesId.isNotBlank() -> (vm.selectedSeries?.takeIf { it.id == c.seriesId }
+            ?: vm.seriesList.firstOrNull { it.id == c.seriesId })?.let { vm.toggleFavoriteVod(it) }
+        else -> vm.movies.firstOrNull { it.id == c.movieId }?.let { vm.toggleFavoriteVod(it) }
+    }
+}
+
 @Composable
 fun PlayerScreen(vm: AppViewModel, nav: NavController) {
     val item = vm.nowPlaying
@@ -144,19 +160,16 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
         }
     }
 
-    // Reseller panel ko har 5 second me batata hai ke yeh device abhi kya dekh raha
-    // hai aur kitni der se — isi se "Now Watching" aur "LIVE NOW" badge, dono update
-    // hote hain. Position second me bheji jati hai.
+    // Reseller panel: ek dafa watch_start (history) aur har 5 second heartbeat (live status)
     LaunchedEffect(item.url) {
         val kind = when {
             item.isLive -> "live"
             item.seriesId.isNotBlank() -> "series"
             else -> "movie"
         }
+        withContext(Dispatchers.IO) { logWatchStart(deviceId, item.title, kind) }
         while (isActive) {
-            withContext(Dispatchers.IO) {
-                sendHeartbeat(deviceId, item.title, kind, item.url, posMs / 1000)
-            }
+            withContext(Dispatchers.IO) { sendHeartbeat(deviceId, item.title, kind, posMs / 1000) }
             delay(5000)
         }
     }
@@ -191,6 +204,7 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
 
     val canNext = vm.canGoNext()
     val canPrev = vm.canGoPrev()
+    val isFav = vm.isFavorite(favKeyOf(item))
 
     fun goNext() { saveHistory(); vm.goNext() }
     fun goPrev() { saveHistory(); vm.goPrev() }
@@ -248,9 +262,8 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                         gestureLabel = "${(volume * 100).toInt()}%" to 2
                         true
                     }
-
-                                        KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_PROG_YELLOW -> {
-                        vm.toggleFavoriteCurrent(); showControls = true; true
+                    KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_PROG_YELLOW -> {
+                        toggleFavForCurrent(vm, item); showControls = true; true
                     }
                     KeyEvent.KEYCODE_BACK -> {
                         saveHistory(); nav.popBackStack(); true
@@ -342,22 +355,22 @@ fun PlayerScreen(vm: AppViewModel, nav: NavController) {
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Favorite (heart) button
                         Box(
                             Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-
-                                                    Box(
-                            Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-                                .clickable { vm.toggleFavoriteCurrent() },
+                                .clickable { toggleFavForCurrent(vm, item) },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                if (vm.isCurrentFavorite()) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                if (isFav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                 null,
-                                tint = if (vm.isCurrentFavorite()) Red else Color.White,
+                                tint = if (isFav) Red else Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
                         Spacer(Modifier.width(8.dp))
+                        Box(
+                            Modifier.size(36.dp).background(Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
                                 .clickable { toggleLandscape() },
                             contentAlignment = Alignment.Center
                         ) {
