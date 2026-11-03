@@ -21,12 +21,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -74,6 +76,17 @@ class MainActivity : ComponentActivity() {
                             composable("tv_series_detail") { TvSeriesDetailScreen(vm, nav) }
                             composable("tv_quad") { TvQuadViewScreen(vm, nav) }
                         }
+
+                        // Home screen par expiry circle (Pakistan time ke mutabiq din)
+                        val backEntry by nav.currentBackStackEntryAsState()
+                        val route = backEntry?.destination?.route
+                        if ((route == "home" || route == "tv_home") &&
+                            vm.session != null && vm.account.expDate > 0
+                        ) {
+                            Box(Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 12.dp)) {
+                                ExpiryBadge(vm.account.expDate)
+                            }
+                        }
                     }
 
                     forceUpdateInfo?.let { info ->
@@ -88,7 +101,7 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.runtime.Composable
 private fun CrashScreen(text: String, onDismiss: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Color(0xFF0A0E1A)).padding(16.dp)) {
-        Text("App crash ho gayi thi. Yeh error neeche hai — screenshot karke bhej dein.", color = Color.White)
+        Text("App crash ho gayi thi. Yeh error neeche hai, screenshot karke bhej dein.", color = Color.White)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             SelectionContainer { Text(text, color = Color(0xFFF87171)) }
