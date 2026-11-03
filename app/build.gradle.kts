@@ -11,8 +11,8 @@ android {
         applicationId = "com.wao.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 9
-        versionName = "8.8"
+        versionCode = 10
+        versionName = "8.9"
     }
 
     buildTypes {
@@ -71,6 +71,5 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // QR code banane ke liye
     implementation("com.google.zxing:core:3.5.3")
 }
