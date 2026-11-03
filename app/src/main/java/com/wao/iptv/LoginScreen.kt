@@ -77,10 +77,6 @@ private fun stepKey(step: Int): String = when (step) {
     else -> "connecting"
 }
 
-// Time-based smooth progress — kabhi "stuck" nahi dikhta, hamesha thoda thoda aagay
-// barhta rahta hai (asymptotic curve, 99% tak pohanch kar wahin dheere dheere inch
-// karta rahega). Jab asal data mil jaye to bahar se 1f set kar dia jata hai —
-// foran 100% ho kar channel list dikhti hai, koi awkward jump nahi.
 @Composable
 private fun rememberSmoothProgress(active: Boolean): MutableState<Float> {
     val progress = remember { mutableStateOf(0f) }
@@ -103,8 +99,8 @@ private fun rememberSmoothProgress(active: Boolean): MutableState<Float> {
 
 private fun progressColor(p: Float): Color = when {
     p <= 0.25f -> Amber
-    p <= 0.50f -> Color(0xFF38BDF8) // sky blue
-    p <= 0.75f -> Color(0xFF2E8B57) // sea green
+    p <= 0.50f -> Color(0xFF38BDF8)
+    p <= 0.75f -> Color(0xFF2E8B57)
     else -> Emerald
 }
 
@@ -213,6 +209,10 @@ private fun DeviceIdLoginSection(vm: AppViewModel, lang: String, onLoggedIn: () 
             Spacer(Modifier.height(6.dp))
             Txt(tr(lang, "device_copied"), 11, Emerald, FontWeight.SemiBold)
         }
+
+        // Device ID ka QR code + WhatsApp share
+        Spacer(Modifier.height(16.dp))
+        DeviceQrCard(deviceId)
 
         Spacer(Modifier.height(18.dp))
         val btnShape = RoundedCornerShape(16.dp)
