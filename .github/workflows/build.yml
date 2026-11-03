@@ -18,17 +18,32 @@ jobs:
         with:
           gradle-version: 8.9
 
-      - name: Cache debug keystore (har build ek jaisi signing key use kare)
-        uses: actions/cache@v4
+      - name: Restore signing keystore
+        id: ks
+        uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: wao-iptv-debug-keystore-v1
 
-      - name: Ensure .android folder exists
-        run: mkdir -p ~/.android
+      - name: Create keystore if missing
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
+
+      - name: Save signing keystore (build fail ho tab bhi)
+        if: always() && steps.ks.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: wao-iptv-debug-keystore-v1
 
       - uses: actions/upload-artifact@v4
         with:
