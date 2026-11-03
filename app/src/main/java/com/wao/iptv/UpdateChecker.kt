@@ -19,9 +19,15 @@ sealed class UpdateResult {
 
 const val UPDATE_CHECK_URL = "https://iptv-updates.duckdns.org:10066/wao-iptv/version.json"
 
+// Browser cache purani APK na de, is liye link me version laga dete hain
+private fun withVersion(url: String, code: Int): String {
+    if (url.isBlank()) return url
+    return if (url.contains("?")) "$url&v=$code" else "$url?v=$code"
+}
+
 fun checkForUpdate(currentVersionCode: Int): UpdateResult {
     return try {
-        val body = httpGet(UPDATE_CHECK_URL)
+        val body = httpGet("$UPDATE_CHECK_URL?t=${System.currentTimeMillis()}")
         val root = JsonParser.parseString(body)
         if (!root.isJsonObject) return UpdateResult.Failed("Update file sahi format me nahi hai")
         val o = root.asJsonObject
@@ -40,13 +46,15 @@ fun checkForUpdate(currentVersionCode: Int): UpdateResult {
         }
 
         val remoteCode = int("versionCode")
+        val minSupported = int("minSupportedVersionCode")
         val info = UpdateInfo(
             versionCode = remoteCode,
             versionName = str("versionName"),
-            apkUrl = str("apkUrl"),
+            apkUrl = withVersion(str("apkUrl"), remoteCode),
             notes = str("notes"),
-            forceUpdate = bool("forceUpdate"),
-            minSupportedVersionCode = int("minSupportedVersionCode")
+            // minSupportedVersionCode se purani apps ko zabardasti update
+            forceUpdate = bool("forceUpdate") || currentVersionCode < minSupported,
+            minSupportedVersionCode = minSupported
         )
 
         if (remoteCode > currentVersionCode) UpdateResult.Available(info) else UpdateResult.UpToDate
