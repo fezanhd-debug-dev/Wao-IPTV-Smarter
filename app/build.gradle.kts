@@ -11,15 +11,12 @@ android {
         applicationId = "com.wao.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 8
-        versionName = "6.2"
+        versionCode = 9
+        versionName = "6.3"
     }
 
     buildTypes {
         debug {
-            // Minify/shrink BAND — yehi 19MB → 3.5MB wale masle ki asal wajah thi.
-            // Ab se APK poori (19MB ke qareeb) banegi aur signing-key bhi hamesha
-            // stable rahegi (keystore cache se).
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = false
@@ -73,4 +70,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // QR code banane ke liye
+    implementation("com.google.zxing:core:3.5.3")
 }
