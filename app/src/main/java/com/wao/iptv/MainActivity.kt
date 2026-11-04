@@ -43,15 +43,15 @@ class MainActivity : ComponentActivity() {
             WaoTheme {
                 val ctx = LocalContext.current
                 var crashText by remember { mutableStateOf(CrashHandler.readAndClear(ctx)) }
-                var forceUpdateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+                var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
                 LaunchedEffect(Unit) {
                     if (crashText == null) {
                         val result = withContext(Dispatchers.IO) {
                             runCatching { checkForUpdate(BuildConfig.VERSION_CODE) }.getOrNull()
                         }
-                        if (result is UpdateResult.Available && result.info.forceUpdate) {
-                            forceUpdateInfo = result.info
+                        if (result is UpdateResult.Available) {
+                            updateInfo = result.info
                         }
                     }
                 }
@@ -77,7 +77,6 @@ class MainActivity : ComponentActivity() {
                             composable("tv_quad") { TvQuadViewScreen(vm, nav) }
                         }
 
-                        // Home screen par expiry circle (Pakistan time ke mutabiq din)
                         val backEntry by nav.currentBackStackEntryAsState()
                         val route = backEntry?.destination?.route
                         if ((route == "home" || route == "tv_home") &&
@@ -89,8 +88,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    forceUpdateInfo?.let { info ->
-                        ForceUpdateScreen(info, vm.settings.lang)
+                    updateInfo?.let { info ->
+                        ForceUpdateScreen(info, vm.settings.lang, onDismiss = { updateInfo = null })
                     }
                 }
             }
